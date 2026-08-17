@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Awaitable
 
+import anyio
 import httpx
 import pytest
 
@@ -13,7 +14,7 @@ from anthropic._request import APIRequest
 def test_async_client_accepts_sync_wrapper_returning_awaitable() -> None:
     seen: list[str] = []
 
-    def middleware(request: APIRequest, call_next: AsyncCallNext) -> Any:
+    def middleware(request: APIRequest, call_next: AsyncCallNext) -> Awaitable[Any]:
         seen.append(request.url)
         return call_next(request)
 
@@ -34,8 +35,6 @@ def test_async_client_accepts_sync_wrapper_returning_awaitable() -> None:
 
         assert result == {"ok": True}
 
-    import anyio
-
     anyio.run(run)
     assert seen == ["/probe"]
 
@@ -45,7 +44,7 @@ def test_async_client_accepts_sync_callable_object_returning_awaitable() -> None
         def __init__(self) -> None:
             self.calls = 0
 
-        def __call__(self, request: APIRequest, call_next: AsyncCallNext) -> Any:
+        def __call__(self, request: APIRequest, call_next: AsyncCallNext) -> Awaitable[Any]:
             self.calls += 1
             return call_next(request)
 
@@ -65,8 +64,6 @@ def test_async_client_accepts_sync_callable_object_returning_awaitable() -> None
             assert await client.get("/probe", cast_to=object) == {"ok": True}
         finally:
             await client.close()
-
-    import anyio
 
     anyio.run(run)
     assert wrapper.calls == 1
