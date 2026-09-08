@@ -360,10 +360,9 @@ class CredentialsFile:
         with ``_unwrap_secret`` at the point of use. Writing the dict back
         through :meth:`_atomic_write_credentials` unwraps automatically.
 
-        On Unix, verifies the file is not group/world-readable. World-readable
-        credentials files are refused outright; group-readable files log a
-        warning but are accepted. The check is skipped on Windows where POSIX
-        mode bits don't carry the same meaning.
+        On Unix, refuses symlinks and any file readable or writable by group
+        or others (``mode & 0o077``). The check is skipped on Windows where
+        POSIX mode bits don't carry the same meaning.
         """
         assert self._credentials_path is not None  # set by _load_config
         path = self._credentials_path
@@ -380,17 +379,10 @@ class CredentialsFile:
                     f"(move the real file into place to keep secret material on the expected filesystem)."
                 )
             mode = stat.S_IMODE(file_stat.st_mode)
-            if mode & 0o004:
+            if mode & 0o077:
                 raise CredentialsError(
-                    f"Credentials file at {path} is world-readable (mode {mode:#o}); "
+                    f"Credentials file at {path} is accessible by group or others (mode {mode:#o}); "
                     f"run `chmod 600 {path}` before retrying."
-                )
-            if mode & 0o070:
-                log.warning(
-                    "Credentials file at %s is group-readable (mode %#o); consider `chmod 600 %s`.",
-                    path,
-                    mode,
-                    path,
                 )
         try:
             # Read → parse → wrap in one expression: neither the raw file text

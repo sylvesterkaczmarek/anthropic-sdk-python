@@ -824,17 +824,16 @@ class TestCredentialsFile:
 
     # -- security: credentials file permissions ---------------------------
 
-    def test_credentials_file_world_readable_rejected(self, tmp_path: pathlib.Path) -> None:
+    @pytest.mark.parametrize("mode", [0o644, 0o640, 0o604, 0o660, 0o620, 0o602])
+    def test_credentials_file_group_or_other_access_rejected(self, tmp_path: pathlib.Path, mode: int) -> None:
         if os.name != "posix":
             pytest.skip("POSIX mode bits only")
         _write_profile(tmp_path, "default", {"type": "external"}, {"access_token": "x"})
-        (tmp_path / "credentials" / "default.json").chmod(0o644)
-        with pytest.raises(AnthropicError, match="world-readable"):
+        (tmp_path / "credentials" / "default.json").chmod(mode)
+        with pytest.raises(AnthropicError, match=rf"accessible by group or others \(mode {mode:#o}\)"):
             CredentialsFile()()
 
-    def test_credentials_file_group_readable_warns(
-        self, tmp_path: pathlib.Path, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_credentials_file_owner_only_accepted(self, tmp_path: pathlib.Path) -> None:
         if os.name != "posix":
             pytest.skip("POSIX mode bits only")
         _write_profile(
@@ -843,10 +842,8 @@ class TestCredentialsFile:
             {"type": "external"},
             {"access_token": "x", "expires_at": int(time.time()) + 3600},
         )
-        (tmp_path / "credentials" / "default.json").chmod(0o640)
-        with caplog.at_level("WARNING", logger="anthropic.lib.credentials._providers"):
-            CredentialsFile()()
-        assert any("group-readable" in rec.message for rec in caplog.records)
+        (tmp_path / "credentials" / "default.json").chmod(0o600)
+        assert CredentialsFile()().token == "x"
 
     def test_credentials_file_symlink_rejected(self, tmp_path: pathlib.Path) -> None:
         if os.name != "posix":
