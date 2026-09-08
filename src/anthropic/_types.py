@@ -118,7 +118,6 @@ class RequestOptions(TypedDict, total=False):
     timeout: float | Timeout | None
     params: Query
     extra_json: AnyMapping
-    idempotency_key: str
     follow_redirects: bool
 
 

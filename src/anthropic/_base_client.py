@@ -2284,7 +2284,6 @@ def make_request_options(
     extra_headers: Headers | None = None,
     extra_query: Query | None = None,
     extra_body: Body | None = None,
-    idempotency_key: str | None = None,
     timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     post_parser: PostParser | NotGiven = not_given,
 ) -> RequestOptions:
@@ -2304,9 +2303,6 @@ def make_request_options(
 
     if not isinstance(timeout, NotGiven):
         options["timeout"] = timeout
-
-    if idempotency_key is not None:
-        options["idempotency_key"] = idempotency_key
 
     if is_given(post_parser):
         # internal
