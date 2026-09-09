@@ -17,6 +17,7 @@ from anthropic.lib.streaming._beta_types import (
     BetaCompactionEvent,
     ParsedBetaMessageStreamEvent,
 )
+from anthropic.types.beta.beta_tool_param import BetaToolParam
 from anthropic.resources.messages.messages import DEPRECATED_MODELS
 from anthropic.lib.streaming._beta_messages import TRACKS_TOOL_INPUT, BetaMessageStream, BetaAsyncMessageStream
 from anthropic.types.beta.beta_message_delta_usage import BetaMessageDeltaUsage
@@ -31,6 +32,14 @@ sync_client = Anthropic(base_url=base_url, api_key=api_key, _strict_response_val
 async_client = AsyncAnthropic(base_url=base_url, api_key=api_key, _strict_response_validation=True)
 
 _T = TypeVar("_T")
+
+
+class WeatherTool:
+    """Stands in for a ``@beta_tool`` / toolset object: ``tools=`` takes anything with a ``to_dict()``."""
+
+    def to_dict(self) -> BetaToolParam:
+        return {"name": "get_weather", "description": "Weather lookup.", "input_schema": {"type": "object"}}
+
 
 # Expected message fixtures
 EXPECTED_BASIC_MESSAGE = {
@@ -394,10 +403,13 @@ class TestSyncMessages:
                 }
             ],
             model="claude-sonnet-4-5",
+            tools=[WeatherTool()],
         ) as stream:
             assert isinstance(cast(Any, stream), BetaMessageStream)
 
             assert_tool_use_response([event for event in stream], stream.get_final_message())
+
+        assert json.loads(respx_mock.calls.last.request.content)["tools"] == [WeatherTool().to_dict()]
 
     @pytest.mark.respx(base_url=base_url)
     def test_server_tool_use(self, respx_mock: MockRouter) -> None:
@@ -656,10 +668,13 @@ class TestAsyncMessages:
                 }
             ],
             model="claude-sonnet-4-5",
+            tools=[WeatherTool()],
         ) as stream:
             assert isinstance(cast(Any, stream), BetaAsyncMessageStream)
 
             assert_tool_use_response([event async for event in stream], await stream.get_final_message())
+
+        assert json.loads(respx_mock.calls.last.request.content)["tools"] == [WeatherTool().to_dict()]
 
     @pytest.mark.asyncio
     @pytest.mark.respx(base_url=base_url)
