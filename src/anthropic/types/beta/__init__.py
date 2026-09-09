@@ -487,6 +487,9 @@ from .beta_managed_agents_user_location_param import (
 from .beta_system_message_output_config_param import (
     BetaSystemMessageOutputConfigParam as BetaSystemMessageOutputConfigParam,
 )
+from .beta_user_profile_external_user_details import (
+    BetaUserProfileExternalUserDetails as BetaUserProfileExternalUserDetails,
+)
 from .beta_web_search_tool_result_block_param import (
     BetaWebSearchToolResultBlockParam as BetaWebSearchToolResultBlockParam,
 )
@@ -825,6 +828,9 @@ from .beta_managed_agents_session_agent_update_param import (
 )
 from .beta_managed_agents_system_content_block_param import (
     BetaManagedAgentsSystemContentBlockParam as BetaManagedAgentsSystemContentBlockParam,
+)
+from .beta_user_profile_external_user_details_params import (
+    BetaUserProfileExternalUserDetailsParams as BetaUserProfileExternalUserDetailsParams,
 )
 from .beta_webhook_deployment_run_started_event_data import (
     BetaWebhookDeploymentRunStartedEventData as BetaWebhookDeploymentRunStartedEventData,

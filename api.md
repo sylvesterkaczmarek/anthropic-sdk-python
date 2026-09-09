@@ -1420,6 +1420,8 @@ Types:
 from anthropic.types.beta import (
     BetaUserProfile,
     BetaUserProfileEnrollmentURL,
+    BetaUserProfileExternalUserDetails,
+    BetaUserProfileExternalUserDetailsParams,
     BetaUserProfileTrustGrant,
 )
 ```
