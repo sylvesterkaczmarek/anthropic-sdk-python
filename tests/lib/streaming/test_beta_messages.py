@@ -205,10 +205,28 @@ EXPECTED_COMPACTION_EVENT_TYPES = [
 ]
 
 
+FOLLOW_UP_MESSAGE = {
+    "id": "msg_01FollowUp",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-sonnet-4-5",
+    "content": [{"type": "text", "text": "It is sunny in Paris."}],
+    "stop_reason": "end_turn",
+    "stop_sequence": None,
+    "usage": {"input_tokens": 400, "output_tokens": 10},
+}
+
+EXPECTED_TOOL_USE_PARAM = {
+    "type": "tool_use",
+    "id": "toolu_01NRLabsLyVHZPKxbKvkfSMn",
+    "name": "get_weather",
+    "input": {"location": "Paris"},
+    "caller": {"type": "direct"},
+}
+
+
 def assert_message_matches(message: BetaMessage, expected: Dict[str, Any]) -> None:
-    actual_message_json = message.model_dump_json(
-        indent=2, exclude_none=True, exclude={"content": {"__all__": {"__json_buf"}}}
-    )
+    actual_message_json = message.model_dump_json(indent=2, exclude_none=True)
 
     assert json.loads(actual_message_json) == expected
 
@@ -410,6 +428,41 @@ class TestSyncMessages:
             assert_tool_use_response([event for event in stream], stream.get_final_message())
 
         assert json.loads(respx_mock.calls.last.request.content)["tools"] == [WeatherTool().to_dict()]
+
+    @pytest.mark.respx(base_url=base_url)
+    def test_tool_use_round_trip(self, respx_mock: MockRouter) -> None:
+        route = respx_mock.post("/v1/messages").mock(
+            side_effect=[
+                httpx2.Response(200, content=get_response("tool_use_response.txt")),
+                httpx2.Response(200, json=FOLLOW_UP_MESSAGE),
+            ]
+        )
+
+        with sync_client.beta.messages.stream(
+            max_tokens=1024,
+            messages=[{"role": "user", "content": "What is the weather in Paris?"}],
+            model="claude-sonnet-4-5",
+        ) as stream:
+            message = stream.get_final_message()
+
+        # accumulated blocks must be reusable as request params without leaking accumulator state
+        sync_client.beta.messages.create(
+            max_tokens=1024,
+            messages=[
+                {"role": "user", "content": "What is the weather in Paris?"},
+                {"role": "assistant", "content": message.content},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "tool_result", "tool_use_id": "toolu_01NRLabsLyVHZPKxbKvkfSMn", "content": "Sunny"}
+                    ],
+                },
+            ],
+            model="claude-sonnet-4-5",
+        )
+
+        request_body = json.loads(route.calls.last.request.content)
+        assert request_body["messages"][1]["content"][1] == EXPECTED_TOOL_USE_PARAM
 
     @pytest.mark.respx(base_url=base_url)
     def test_server_tool_use(self, respx_mock: MockRouter) -> None:

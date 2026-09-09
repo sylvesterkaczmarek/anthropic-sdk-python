@@ -89,6 +89,7 @@ def test_streamed_fallback_block_is_constructed_as_fallback_block() -> None:
     message = accumulate_event(
         event=cast(Any, event),
         current_snapshot=snapshot,
+        json_bufs={},
         request_headers=httpx2.Headers(),
     )
 
