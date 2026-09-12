@@ -1,5 +1,3 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 import os
@@ -9,6 +7,7 @@ import pytest
 
 from anthropic import Anthropic, AsyncAnthropic
 from tests.utils import assert_matches_type
+from anthropic._utils import parse_datetime
 from anthropic.pagination import SyncPageCursor, AsyncPageCursor
 from anthropic.types.beta import (
     BetaUserProfile,
@@ -29,10 +28,20 @@ class TestUserProfiles:
     @parametrize
     def test_method_create_with_all_params(self, client: Anthropic) -> None:
         user_profile = client.beta.user_profiles.create(
+            access_type="application",
             external_id="user_12345",
+            external_user_details={
+                "account_status": "active",
+                "country": "country",
+                "email_hash": "x",
+                "entity_type": "individual",
+                "name_hash": "x",
+                "onboarded_at": parse_datetime("2019-12-27T18:11:19.117Z"),
+                "reference_id": "x",
+            },
+            external_user_onboarded_at=parse_datetime("2024-11-02T08:15:00Z"),
             metadata={},
             name="x",
-            relationship="external",
             betas=["message-batches-2024-09-24"],
         )
         assert_matches_type(BetaUserProfile, user_profile, path=["response"])
@@ -114,10 +123,20 @@ class TestUserProfiles:
     def test_method_update_with_all_params(self, client: Anthropic) -> None:
         user_profile = client.beta.user_profiles.update(
             user_profile_id="uprof_011CZkZCu8hGbp5mYRQgUmz9",
+            access_type="application",
             external_id="user_12345",
+            external_user_details={
+                "account_status": "active",
+                "country": "country",
+                "email_hash": "x",
+                "entity_type": "individual",
+                "name_hash": "x",
+                "onboarded_at": parse_datetime("2019-12-27T18:11:19.117Z"),
+                "reference_id": "x",
+            },
+            external_user_onboarded_at=parse_datetime("2019-12-27T18:11:19.117Z"),
             metadata={"foo": "string"},
             name="x",
-            relationship="external",
             betas=["message-batches-2024-09-24"],
         )
         assert_matches_type(BetaUserProfile, user_profile, path=["response"])
@@ -163,6 +182,7 @@ class TestUserProfiles:
         user_profile = client.beta.user_profiles.list(
             limit=0,
             order="asc",
+            order_by="created_at",
             page="page",
             betas=["message-batches-2024-09-24"],
         )
@@ -248,10 +268,20 @@ class TestAsyncUserProfiles:
     @parametrize
     async def test_method_create_with_all_params(self, async_client: AsyncAnthropic) -> None:
         user_profile = await async_client.beta.user_profiles.create(
+            access_type="application",
             external_id="user_12345",
+            external_user_details={
+                "account_status": "active",
+                "country": "country",
+                "email_hash": "x",
+                "entity_type": "individual",
+                "name_hash": "x",
+                "onboarded_at": parse_datetime("2019-12-27T18:11:19.117Z"),
+                "reference_id": "x",
+            },
+            external_user_onboarded_at=parse_datetime("2024-11-02T08:15:00Z"),
             metadata={},
             name="x",
-            relationship="external",
             betas=["message-batches-2024-09-24"],
         )
         assert_matches_type(BetaUserProfile, user_profile, path=["response"])
@@ -262,7 +292,7 @@ class TestAsyncUserProfiles:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        user_profile = response.parse()
+        user_profile = await response.parse()
         assert_matches_type(BetaUserProfile, user_profile, path=["response"])
 
     @parametrize
@@ -299,7 +329,7 @@ class TestAsyncUserProfiles:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        user_profile = response.parse()
+        user_profile = await response.parse()
         assert_matches_type(BetaUserProfile, user_profile, path=["response"])
 
     @parametrize
@@ -333,10 +363,20 @@ class TestAsyncUserProfiles:
     async def test_method_update_with_all_params(self, async_client: AsyncAnthropic) -> None:
         user_profile = await async_client.beta.user_profiles.update(
             user_profile_id="uprof_011CZkZCu8hGbp5mYRQgUmz9",
+            access_type="application",
             external_id="user_12345",
+            external_user_details={
+                "account_status": "active",
+                "country": "country",
+                "email_hash": "x",
+                "entity_type": "individual",
+                "name_hash": "x",
+                "onboarded_at": parse_datetime("2019-12-27T18:11:19.117Z"),
+                "reference_id": "x",
+            },
+            external_user_onboarded_at=parse_datetime("2019-12-27T18:11:19.117Z"),
             metadata={"foo": "string"},
             name="x",
-            relationship="external",
             betas=["message-batches-2024-09-24"],
         )
         assert_matches_type(BetaUserProfile, user_profile, path=["response"])
@@ -349,7 +389,7 @@ class TestAsyncUserProfiles:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        user_profile = response.parse()
+        user_profile = await response.parse()
         assert_matches_type(BetaUserProfile, user_profile, path=["response"])
 
     @parametrize
@@ -382,6 +422,7 @@ class TestAsyncUserProfiles:
         user_profile = await async_client.beta.user_profiles.list(
             limit=0,
             order="asc",
+            order_by="created_at",
             page="page",
             betas=["message-batches-2024-09-24"],
         )
@@ -393,7 +434,7 @@ class TestAsyncUserProfiles:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        user_profile = response.parse()
+        user_profile = await response.parse()
         assert_matches_type(AsyncPageCursor[BetaUserProfile], user_profile, path=["response"])
 
     @parametrize
@@ -430,7 +471,7 @@ class TestAsyncUserProfiles:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        user_profile = response.parse()
+        user_profile = await response.parse()
         assert_matches_type(BetaUserProfileEnrollmentURL, user_profile, path=["response"])
 
     @parametrize

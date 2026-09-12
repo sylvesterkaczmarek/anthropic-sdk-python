@@ -1,5 +1,3 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 import os
@@ -63,7 +61,8 @@ class TestSessions:
             ],
             title="Order #1234 inquiry",
             vault_ids=["string"],
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsSession, session, path=["response"])
 
@@ -104,7 +103,8 @@ class TestSessions:
     def test_method_retrieve_with_all_params(self, client: Anthropic) -> None:
         session = client.beta.sessions.retrieve(
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsSession, session, path=["response"])
 
@@ -166,6 +166,7 @@ class TestSessions:
                                 "name": "bash",
                                 "enabled": True,
                                 "permission_policy": {"type": "always_allow"},
+                                "type": "bash",
                             }
                         ],
                         "default_config": {
@@ -185,7 +186,8 @@ class TestSessions:
             metadata={"foo": "string"},
             title="Order #1234 inquiry",
             vault_ids=["string"],
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsSession, session, path=["response"])
 
@@ -220,13 +222,13 @@ class TestSessions:
                 session_id="",
             )
 
-    @pytest.mark.skip(reason="buildURL drops path-level query params (SDK-4349)")
+    @pytest.mark.skip(reason="buildURL drops path-level query params")
     @parametrize
     def test_method_list(self, client: Anthropic) -> None:
         session = client.beta.sessions.list()
         assert_matches_type(SyncBidirectionalPageCursor[BetaManagedAgentsSession], session, path=["response"])
 
-    @pytest.mark.skip(reason="buildURL drops path-level query params (SDK-4349)")
+    @pytest.mark.skip(reason="buildURL drops path-level query params")
     @parametrize
     def test_method_list_with_all_params(self, client: Anthropic) -> None:
         session = client.beta.sessions.list(
@@ -243,11 +245,12 @@ class TestSessions:
             order="asc",
             page="page",
             statuses=["rescheduling"],
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(SyncBidirectionalPageCursor[BetaManagedAgentsSession], session, path=["response"])
 
-    @pytest.mark.skip(reason="buildURL drops path-level query params (SDK-4349)")
+    @pytest.mark.skip(reason="buildURL drops path-level query params")
     @parametrize
     def test_raw_response_list(self, client: Anthropic) -> None:
         response = client.beta.sessions.with_raw_response.list()
@@ -257,7 +260,7 @@ class TestSessions:
         session = response.parse()
         assert_matches_type(SyncBidirectionalPageCursor[BetaManagedAgentsSession], session, path=["response"])
 
-    @pytest.mark.skip(reason="buildURL drops path-level query params (SDK-4349)")
+    @pytest.mark.skip(reason="buildURL drops path-level query params")
     @parametrize
     def test_streaming_response_list(self, client: Anthropic) -> None:
         with client.beta.sessions.with_streaming_response.list() as response:
@@ -280,7 +283,8 @@ class TestSessions:
     def test_method_delete_with_all_params(self, client: Anthropic) -> None:
         session = client.beta.sessions.delete(
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsDeletedSession, session, path=["response"])
 
@@ -326,7 +330,8 @@ class TestSessions:
     def test_method_archive_with_all_params(self, client: Anthropic) -> None:
         session = client.beta.sessions.archive(
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsSession, session, path=["response"])
 
@@ -408,7 +413,8 @@ class TestAsyncSessions:
             ],
             title="Order #1234 inquiry",
             vault_ids=["string"],
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsSession, session, path=["response"])
 
@@ -421,7 +427,7 @@ class TestAsyncSessions:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        session = response.parse()
+        session = await response.parse()
         assert_matches_type(BetaManagedAgentsSession, session, path=["response"])
 
     @parametrize
@@ -449,7 +455,8 @@ class TestAsyncSessions:
     async def test_method_retrieve_with_all_params(self, async_client: AsyncAnthropic) -> None:
         session = await async_client.beta.sessions.retrieve(
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsSession, session, path=["response"])
 
@@ -461,7 +468,7 @@ class TestAsyncSessions:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        session = response.parse()
+        session = await response.parse()
         assert_matches_type(BetaManagedAgentsSession, session, path=["response"])
 
     @parametrize
@@ -511,6 +518,7 @@ class TestAsyncSessions:
                                 "name": "bash",
                                 "enabled": True,
                                 "permission_policy": {"type": "always_allow"},
+                                "type": "bash",
                             }
                         ],
                         "default_config": {
@@ -530,7 +538,8 @@ class TestAsyncSessions:
             metadata={"foo": "string"},
             title="Order #1234 inquiry",
             vault_ids=["string"],
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsSession, session, path=["response"])
 
@@ -542,7 +551,7 @@ class TestAsyncSessions:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        session = response.parse()
+        session = await response.parse()
         assert_matches_type(BetaManagedAgentsSession, session, path=["response"])
 
     @parametrize
@@ -565,13 +574,13 @@ class TestAsyncSessions:
                 session_id="",
             )
 
-    @pytest.mark.skip(reason="buildURL drops path-level query params (SDK-4349)")
+    @pytest.mark.skip(reason="buildURL drops path-level query params")
     @parametrize
     async def test_method_list(self, async_client: AsyncAnthropic) -> None:
         session = await async_client.beta.sessions.list()
         assert_matches_type(AsyncBidirectionalPageCursor[BetaManagedAgentsSession], session, path=["response"])
 
-    @pytest.mark.skip(reason="buildURL drops path-level query params (SDK-4349)")
+    @pytest.mark.skip(reason="buildURL drops path-level query params")
     @parametrize
     async def test_method_list_with_all_params(self, async_client: AsyncAnthropic) -> None:
         session = await async_client.beta.sessions.list(
@@ -588,21 +597,22 @@ class TestAsyncSessions:
             order="asc",
             page="page",
             statuses=["rescheduling"],
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(AsyncBidirectionalPageCursor[BetaManagedAgentsSession], session, path=["response"])
 
-    @pytest.mark.skip(reason="buildURL drops path-level query params (SDK-4349)")
+    @pytest.mark.skip(reason="buildURL drops path-level query params")
     @parametrize
     async def test_raw_response_list(self, async_client: AsyncAnthropic) -> None:
         response = await async_client.beta.sessions.with_raw_response.list()
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        session = response.parse()
+        session = await response.parse()
         assert_matches_type(AsyncBidirectionalPageCursor[BetaManagedAgentsSession], session, path=["response"])
 
-    @pytest.mark.skip(reason="buildURL drops path-level query params (SDK-4349)")
+    @pytest.mark.skip(reason="buildURL drops path-level query params")
     @parametrize
     async def test_streaming_response_list(self, async_client: AsyncAnthropic) -> None:
         async with async_client.beta.sessions.with_streaming_response.list() as response:
@@ -625,7 +635,8 @@ class TestAsyncSessions:
     async def test_method_delete_with_all_params(self, async_client: AsyncAnthropic) -> None:
         session = await async_client.beta.sessions.delete(
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsDeletedSession, session, path=["response"])
 
@@ -637,7 +648,7 @@ class TestAsyncSessions:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        session = response.parse()
+        session = await response.parse()
         assert_matches_type(BetaManagedAgentsDeletedSession, session, path=["response"])
 
     @parametrize
@@ -671,7 +682,8 @@ class TestAsyncSessions:
     async def test_method_archive_with_all_params(self, async_client: AsyncAnthropic) -> None:
         session = await async_client.beta.sessions.archive(
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsSession, session, path=["response"])
 
@@ -683,7 +695,7 @@ class TestAsyncSessions:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        session = response.parse()
+        session = await response.parse()
         assert_matches_type(BetaManagedAgentsSession, session, path=["response"])
 
     @parametrize

@@ -2,9 +2,9 @@ import os
 import json
 import logging
 from typing import Any, Dict, List, Union, cast
-from typing_extensions import Literal
+from typing_extensions import Literal, get_args
 
-import httpx
+import httpx2
 import pytest
 from respx import MockRouter
 from inline_snapshot import external, snapshot
@@ -13,7 +13,8 @@ from anthropic import Anthropic, AsyncAnthropic, beta_tool, beta_async_tool
 from anthropic._utils import assert_signatures_in_sync
 from anthropic._compat import PYDANTIC_V1
 from anthropic.lib.tools import BetaFunctionToolResultType
-from anthropic.lib.tools._tool_dispatch import available_tool_names
+from anthropic.lib.tools._beta_runner import _STOP_REASON_STEPS, _determine_next_step_from_stop_reason
+from anthropic.types.beta.beta_stop_reason import BetaStopReason
 from anthropic.types.beta.beta_message_param import BetaMessageParam
 from anthropic.types.beta.beta_content_block_param import BetaContentBlockParam
 from anthropic.types.beta.beta_tool_result_block_param import BetaToolResultBlockParam
@@ -52,6 +53,7 @@ ParsedBetaMessage(
     context_management=None,
     diagnostics=None,
     id='msg_01BZsMQjer9AFLgmdRKJ8NcA',
+    input_transformations=None,
     model='claude-haiku-4-5-20251001',
     role='assistant',
     stop_details=None,
@@ -103,6 +105,7 @@ ParsedBetaMessage(
     context_management=None,
     diagnostics=None,
     id='msg_0158JyopQTFaomteeJoDpS5q',
+    input_transformations=None,
     model='claude-haiku-4-5-20251001',
     role='assistant',
     stop_details=None,
@@ -475,112 +478,6 @@ class TestSyncRunTools:
             }
         )
 
-    @pytest.mark.parametrize(
-        "http_snapshot",
-        [
-            cast(Any, external("uuid:956fa2fe-8752-4f7c-8f9a-33735e62b898.json")),
-        ],
-    )
-    def test_compaction_control(self, snapshot_client: Anthropic, caplog: pytest.LogCaptureFixture) -> None:
-        @beta_tool
-        def submit_analysis(summary: str) -> str:  # noqa: ARG001
-            """Call this LAST with your final analysis."""
-            return "Analysis submitted"
-
-        with pytest.warns(DeprecationWarning, match="compaction_control.*deprecated"):
-            runner = snapshot_client.beta.messages.tool_runner(
-                model="claude-sonnet-4-5",
-                max_tokens=4000,
-                tools=[submit_analysis],
-                messages=[
-                    {
-                        "role": "user",
-                        "content": (
-                            "Write a detailed 500 word essay about dogs, cats, and birds. "
-                            "Call the tool submit_analysis with the information about all three animals. "
-                            "Note that you should call it only once at the end of your essay."
-                        ),
-                    }
-                ],
-                betas=["structured-outputs-2025-12-15"],
-                compaction_control={"enabled": True, "context_token_threshold": 500},
-                max_iterations=1,
-            )
-
-        with caplog.at_level(logging.INFO, logger="anthropic.lib.tools._beta_runner"):
-            next(runner)
-            runner.until_done()
-
-        messages = list(runner._params["messages"])
-        assert len(messages) == 1
-        assert messages[0]["role"] == "user"
-
-        content = list(messages[0]["content"])[0]
-        assert isinstance(content, dict)
-        assert content["type"] == "text"
-        assert content["text"] == snapshot("""\
-<summary>
-## Task Overview
-The user requests a detailed 500-word essay about dogs, cats, and birds, followed by a single call to the `submit_analysis` tool at the end containing information about all three animals. \n\
-
-**Key Requirements:**
-- Essay must be 500 words in length
-- Cover dogs, cats, and birds
-- Call `submit_analysis` tool only once at the completion
-- The tool call should contain information about all three animals
-
-## Current State
-**Status:** Not started - no work has been completed yet.
-
-**Completed:**
-- None
-
-**Artifacts Produced:**
-- None
-
-## Important Discoveries
-**Unknown Information:**
-- The exact structure/parameters expected by the `submit_analysis` tool (need to determine what format the tool accepts)
-- Whether the tool requires specific data fields for each animal or free-form text
-- The level of detail expected in the analysis (scientific, casual, comparative, etc.)
-
-**Assumptions to Verify:**
-- The essay should likely compare/contrast the three animals as pets or discuss their characteristics
-- The `submit_analysis` tool probably accepts structured data about the animals
-
-## Next Steps
-1. **Write the 500-word essay** covering:
-   - Dogs (characteristics, behavior, role as pets)
-   - Cats (characteristics, behavior, role as pets)
-   - Birds (characteristics, behavior, role as pets)
-   - Potentially comparative elements between the three
-
-2. **Determine the `submit_analysis` tool structure** - check what parameters it accepts
-
-3. **Call `submit_analysis` once** with comprehensive information about all three animals in the appropriate format
-
-4. **Verify word count** is approximately 500 words before submitting
-
-## Context to Preserve
-- User emphasized calling the tool "only once at the end" - this is a specific constraint to respect
-- The tool should contain information about "all three animals" - comprehensive coverage required
-- Essay should be "detailed" - suggests substantive content rather than superficial treatment
-
-## Priority
-High priority on understanding the `submit_analysis` tool parameters before writing the essay, as the content may need to be structured to align with tool requirements.
-</summary>\
-""")
-        assert caplog.record_tuples == snapshot(
-            [
-                (
-                    "anthropic.lib.tools._beta_runner",
-                    20,
-                    "Token usage 1612 has exceeded the threshold of 500. Performing compaction.",
-                ),
-                ("anthropic.lib.tools._beta_runner", 20, "Compaction complete. New token usage: 486"),
-            ]
-        )
-
     @pytest.mark.parametrize("snapshot_client", [False], indirect=True)
     @pytest.mark.parametrize(
         "http_snapshot",
@@ -677,8 +574,8 @@ async def test_basic_call_async(async_snapshot_client: AsyncAnthropic) -> None:
     ).until_done()
 
 
-def _refusal_with_tool_use() -> httpx.Response:
-    return httpx.Response(
+def _refusal_with_tool_use() -> httpx2.Response:
+    return httpx2.Response(
         200,
         json={
             "id": "msg_refusal",
@@ -774,8 +671,313 @@ async def test_refusal_ends_runner_without_executing_tools_async(respx_mock: Moc
     assert len(respx_mock.calls) == 1
 
 
-def _tool_use_response(tool_name: str, tool_use_id: str, input: Union[Dict[str, Any], None] = None) -> httpx.Response:
-    return httpx.Response(
+def _paused_server_tool_use() -> httpx2.Response:
+    return httpx2.Response(
+        200,
+        json={
+            "id": "msg_paused",
+            "type": "message",
+            "role": "assistant",
+            "model": "claude-haiku-4-5",
+            "content": [
+                {
+                    "type": "server_tool_use",
+                    "id": "srvtoolu_paused",
+                    "name": "web_search",
+                    "input": {"query": "weather in SF"},
+                }
+            ],
+            "stop_reason": "pause_turn",
+            "stop_sequence": None,
+            "usage": {"input_tokens": 1, "output_tokens": 1},
+        },
+    )
+
+
+_PAUSED_ASSISTANT_TURN = {
+    "role": "assistant",
+    "content": [
+        {"type": "server_tool_use", "id": "srvtoolu_paused", "name": "web_search", "input": {"query": "weather in SF"}}
+    ],
+}
+
+
+@pytest.mark.skipif(PYDANTIC_V1, reason="tool runner not supported with pydantic v1")
+@pytest.mark.respx(base_url=base_url)
+def test_pause_turn_resumes_runner_sync(respx_mock: MockRouter) -> None:
+    respx_mock.post("/v1/messages").mock(side_effect=[_paused_server_tool_use(), _end_turn_response()])
+
+    @beta_tool
+    def get_weather(location: str, units: Literal["c", "f"]) -> BetaFunctionToolResultType:
+        """Lookup the weather for a given city.
+
+        Args:
+            location: The city and state, e.g. San Francisco, CA
+            units: Unit for the output, either 'c' for celsius or 'f' for fahrenheit
+        """
+        return json.dumps(_get_weather(location, units))
+
+    with Anthropic(
+        base_url=base_url, api_key="my-anthropic-api-key", _strict_response_validation=True, max_retries=0
+    ) as client:
+        message = client.beta.messages.tool_runner(
+            max_tokens=1024,
+            model="claude-haiku-4-5",
+            tools=[get_weather, {"type": "web_search_20250305", "name": "web_search"}],
+            messages=[{"role": "user", "content": "What is the weather in SF?"}],
+        ).until_done()
+
+    assert message.stop_reason == "end_turn"
+    assert len(respx_mock.calls) == 2
+    assert json.loads(respx_mock.calls.last.request.content)["messages"][-1] == _PAUSED_ASSISTANT_TURN
+
+
+@pytest.mark.skipif(PYDANTIC_V1, reason="tool runner not supported with pydantic v1")
+@pytest.mark.respx(base_url=base_url)
+async def test_pause_turn_resumes_runner_async(respx_mock: MockRouter) -> None:
+    respx_mock.post("/v1/messages").mock(side_effect=[_paused_server_tool_use(), _end_turn_response()])
+
+    @beta_async_tool
+    async def get_weather(location: str, units: Literal["c", "f"]) -> BetaFunctionToolResultType:
+        """Lookup the weather for a given city.
+
+        Args:
+            location: The city and state, e.g. San Francisco, CA
+            units: Unit for the output, either 'c' for celsius or 'f' for fahrenheit
+        """
+        return json.dumps(_get_weather(location, units))
+
+    async with AsyncAnthropic(
+        base_url=base_url, api_key="my-anthropic-api-key", _strict_response_validation=True, max_retries=0
+    ) as client:
+        message = await client.beta.messages.tool_runner(
+            max_tokens=1024,
+            model="claude-haiku-4-5",
+            tools=[get_weather, {"type": "web_search_20250305", "name": "web_search"}],
+            messages=[{"role": "user", "content": "What is the weather in SF?"}],
+        ).until_done()
+
+    assert message.stop_reason == "end_turn"
+    assert len(respx_mock.calls) == 2
+    assert json.loads(respx_mock.calls.last.request.content)["messages"][-1] == _PAUSED_ASSISTANT_TURN
+
+
+@pytest.mark.skipif(PYDANTIC_V1, reason="tool runner not supported with pydantic v1")
+@pytest.mark.respx(base_url=base_url)
+def test_pause_turn_respects_max_iterations_sync(respx_mock: MockRouter) -> None:
+    respx_mock.post("/v1/messages").mock(side_effect=[_paused_server_tool_use() for _ in range(5)])
+
+    with Anthropic(
+        base_url=base_url, api_key="my-anthropic-api-key", _strict_response_validation=True, max_retries=0
+    ) as client:
+        message = client.beta.messages.tool_runner(
+            max_tokens=1024,
+            model="claude-haiku-4-5",
+            tools=[{"type": "web_search_20250305", "name": "web_search"}],
+            messages=[{"role": "user", "content": "What is the weather in SF?"}],
+            max_iterations=3,
+        ).until_done()
+
+    assert message.stop_reason == "pause_turn"
+    assert len(respx_mock.calls) == 3
+
+
+def test_every_stop_reason_is_classified() -> None:
+    # A newly generated stop reason must be mapped to a step before this passes.
+    assert set(get_args(BetaStopReason)) == set(_STOP_REASON_STEPS)
+
+    expected: Dict[BetaStopReason, str] = {
+        "tool_use": "run_tools",
+        "pause_turn": "resume",
+        "compaction": "resume",
+        "end_turn": "stop",
+        "stop_sequence": "stop",
+        "max_tokens": "stop",
+        "model_context_window_exceeded": "stop",
+        "refusal": "stop",
+    }
+    assert {
+        stop_reason: _determine_next_step_from_stop_reason(stop_reason) for stop_reason in get_args(BetaStopReason)
+    } == expected
+    assert _determine_next_step_from_stop_reason(None) == "stop"
+    assert _determine_next_step_from_stop_reason(cast(Any, "some_future_reason")) == "stop"
+
+
+def _compaction_response() -> httpx2.Response:
+    return httpx2.Response(
+        200,
+        json={
+            "id": "msg_compaction",
+            "type": "message",
+            "role": "assistant",
+            "model": "claude-haiku-4-5",
+            "content": [{"type": "compaction", "content": "Summary of the conversation so far."}],
+            "stop_reason": "compaction",
+            "stop_sequence": None,
+            "usage": {"input_tokens": 1, "output_tokens": 1},
+        },
+    )
+
+
+_COMPACTION_ASSISTANT_TURN = {
+    "role": "assistant",
+    "content": [{"type": "compaction", "content": "Summary of the conversation so far."}],
+}
+
+
+@pytest.mark.skipif(PYDANTIC_V1, reason="tool runner not supported with pydantic v1")
+@pytest.mark.respx(base_url=base_url)
+def test_compaction_resumes_runner_sync(respx_mock: MockRouter) -> None:
+    respx_mock.post("/v1/messages").mock(side_effect=[_compaction_response(), _end_turn_response()])
+
+    @beta_tool
+    def get_weather(location: str, units: Literal["c", "f"]) -> BetaFunctionToolResultType:
+        """Lookup the weather for a given city.
+
+        Args:
+            location: The city and state, e.g. San Francisco, CA
+            units: Unit for the output, either 'c' for celsius or 'f' for fahrenheit
+        """
+        return json.dumps(_get_weather(location, units))
+
+    with Anthropic(
+        base_url=base_url, api_key="my-anthropic-api-key", _strict_response_validation=True, max_retries=0
+    ) as client:
+        message = client.beta.messages.tool_runner(
+            max_tokens=1024,
+            model="claude-haiku-4-5",
+            tools=[get_weather],
+            messages=[{"role": "user", "content": "What is the weather in SF?"}],
+        ).until_done()
+
+    assert message.stop_reason == "end_turn"
+    assert len(respx_mock.calls) == 2
+    assert json.loads(respx_mock.calls.last.request.content)["messages"][-1] == _COMPACTION_ASSISTANT_TURN
+
+
+@pytest.mark.skipif(PYDANTIC_V1, reason="tool runner not supported with pydantic v1")
+@pytest.mark.respx(base_url=base_url)
+async def test_compaction_resumes_runner_async(respx_mock: MockRouter) -> None:
+    respx_mock.post("/v1/messages").mock(side_effect=[_compaction_response(), _end_turn_response()])
+
+    @beta_async_tool
+    async def get_weather(location: str, units: Literal["c", "f"]) -> BetaFunctionToolResultType:
+        """Lookup the weather for a given city.
+
+        Args:
+            location: The city and state, e.g. San Francisco, CA
+            units: Unit for the output, either 'c' for celsius or 'f' for fahrenheit
+        """
+        return json.dumps(_get_weather(location, units))
+
+    async with AsyncAnthropic(
+        base_url=base_url, api_key="my-anthropic-api-key", _strict_response_validation=True, max_retries=0
+    ) as client:
+        message = await client.beta.messages.tool_runner(
+            max_tokens=1024,
+            model="claude-haiku-4-5",
+            tools=[get_weather],
+            messages=[{"role": "user", "content": "What is the weather in SF?"}],
+        ).until_done()
+
+    assert message.stop_reason == "end_turn"
+    assert len(respx_mock.calls) == 2
+    assert json.loads(respx_mock.calls.last.request.content)["messages"][-1] == _COMPACTION_ASSISTANT_TURN
+
+
+def _max_tokens_with_tool_use() -> httpx2.Response:
+    return httpx2.Response(
+        200,
+        json={
+            "id": "msg_max_tokens",
+            "type": "message",
+            "role": "assistant",
+            "model": "claude-haiku-4-5",
+            "content": [
+                {
+                    "type": "tool_use",
+                    "id": "toolu_max_tokens",
+                    "name": "get_weather",
+                    "input": {"location": "San Francisco, CA", "units": "f"},
+                }
+            ],
+            "stop_reason": "max_tokens",
+            "stop_sequence": None,
+            "usage": {"input_tokens": 1, "output_tokens": 1},
+        },
+    )
+
+
+@pytest.mark.skipif(PYDANTIC_V1, reason="tool runner not supported with pydantic v1")
+@pytest.mark.respx(base_url=base_url)
+def test_max_tokens_ends_runner_without_executing_tools_sync(respx_mock: MockRouter) -> None:
+    respx_mock.post("/v1/messages").mock(side_effect=[_max_tokens_with_tool_use()])
+
+    called = False
+
+    @beta_tool
+    def get_weather(location: str, units: Literal["c", "f"]) -> BetaFunctionToolResultType:
+        """Lookup the weather for a given city.
+
+        Args:
+            location: The city and state, e.g. San Francisco, CA
+            units: Unit for the output, either 'c' for celsius or 'f' for fahrenheit
+        """
+        nonlocal called
+        called = True
+        return json.dumps(_get_weather(location, units))
+
+    with Anthropic(
+        base_url=base_url, api_key="my-anthropic-api-key", _strict_response_validation=True, max_retries=0
+    ) as client:
+        message = client.beta.messages.tool_runner(
+            max_tokens=1024,
+            model="claude-haiku-4-5",
+            tools=[get_weather],
+            messages=[{"role": "user", "content": "What is the weather in SF?"}],
+        ).until_done()
+
+    assert message.stop_reason == "max_tokens"
+    assert called is False
+    assert len(respx_mock.calls) == 1
+
+
+@pytest.mark.skipif(PYDANTIC_V1, reason="tool runner not supported with pydantic v1")
+@pytest.mark.respx(base_url=base_url)
+async def test_max_tokens_ends_runner_without_executing_tools_async(respx_mock: MockRouter) -> None:
+    respx_mock.post("/v1/messages").mock(side_effect=[_max_tokens_with_tool_use()])
+
+    called = False
+
+    @beta_async_tool
+    async def get_weather(location: str, units: Literal["c", "f"]) -> BetaFunctionToolResultType:
+        """Lookup the weather for a given city.
+
+        Args:
+            location: The city and state, e.g. San Francisco, CA
+            units: Unit for the output, either 'c' for celsius or 'f' for fahrenheit
+        """
+        nonlocal called
+        called = True
+        return json.dumps(_get_weather(location, units))
+
+    async with AsyncAnthropic(
+        base_url=base_url, api_key="my-anthropic-api-key", _strict_response_validation=True, max_retries=0
+    ) as client:
+        message = await client.beta.messages.tool_runner(
+            max_tokens=1024,
+            model="claude-haiku-4-5",
+            tools=[get_weather],
+            messages=[{"role": "user", "content": "What is the weather in SF?"}],
+        ).until_done()
+
+    assert message.stop_reason == "max_tokens"
+    assert called is False
+    assert len(respx_mock.calls) == 1
+
+
+def _tool_use_response(tool_name: str, tool_use_id: str, input: Union[Dict[str, Any], None] = None) -> httpx2.Response:
+    return httpx2.Response(
         200,
         json={
             "id": f"msg_{tool_use_id}",
@@ -797,8 +999,8 @@ def _tool_use_response(tool_name: str, tool_use_id: str, input: Union[Dict[str, 
     )
 
 
-def _end_turn_response() -> httpx.Response:
-    return httpx.Response(
+def _end_turn_response() -> httpx2.Response:
+    return httpx2.Response(
         200,
         json={
             "id": "msg_end_turn",
@@ -1236,44 +1438,6 @@ def test_tool_addition_via_append_messages_re_enables_removed_tool_sync(respx_mo
             ],
         }
     ]
-
-
-def test_tool_removal_nested_in_mid_conv_system_block() -> None:
-    # `mid_conv_system` content is schema-limited to text/tool_addition/tool_removal, so the
-    # one-level walk still applies a nested `tool_removal` (and ignores text).
-    messages: List[BetaMessageParam] = [
-        {
-            "role": "system",
-            "content": [
-                {
-                    "type": "mid_conv_system",
-                    "content": [
-                        {"type": "text", "text": "get_weather is no longer available."},
-                        {"type": "tool_removal", "tool": {"type": "tool_reference", "name": "get_weather"}},
-                    ],
-                }
-            ],
-        }
-    ]
-    assert available_tool_names(messages, ["get_weather", "get_time"]) == {"get_time"}
-
-
-def test_tool_addition_nested_in_mid_conv_system_block() -> None:
-    messages: List[BetaMessageParam] = [
-        {"role": "system", "content": [_tool_reference_block("tool_removal", "get_weather")]},
-        {
-            "role": "system",
-            "content": [
-                {
-                    "type": "mid_conv_system",
-                    "content": [
-                        {"type": "tool_addition", "tool": {"type": "tool_reference", "name": "get_weather"}},
-                    ],
-                }
-            ],
-        },
-    ]
-    assert available_tool_names(messages, ["get_weather"]) == {"get_weather"}
 
 
 def _get_weather(location: str, units: Literal["c", "f"]) -> Dict[str, Any]:

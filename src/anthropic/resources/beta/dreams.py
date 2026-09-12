@@ -1,19 +1,21 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 from typing import List, Union, Iterable, Optional
 from datetime import datetime
 from itertools import chain
 
-import httpx
+import httpx2
 
-from ... import _legacy_response
 from ..._types import Body, Omit, Query, Headers, NotGiven, omit, not_given
 from ..._utils import is_given, path_template, maybe_transform, strip_not_given, async_maybe_transform
 from ..._compat import cached_property
 from ..._resource import SyncAPIResource, AsyncAPIResource
-from ..._response import to_streamed_response_wrapper, async_to_streamed_response_wrapper
+from ..._response import (
+    to_raw_response_wrapper,
+    to_streamed_response_wrapper,
+    async_to_raw_response_wrapper,
+    async_to_streamed_response_wrapper,
+)
 from ...pagination import SyncPageCursor, AsyncPageCursor
 from ...types.beta import dream_list_params, dream_create_params
 from ..._base_client import AsyncPaginator, make_request_options
@@ -54,12 +56,13 @@ class Dreams(SyncAPIResource):
         instructions: Optional[str] | Omit = omit,
         output_behavior: BetaOutputBehaviorParam | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaDream:
         """
         Create a Dream
@@ -86,7 +89,8 @@ class Dreams(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["dreaming-2026-04-21"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -114,12 +118,13 @@ class Dreams(SyncAPIResource):
         dream_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaDream:
         """
         Get a Dream
@@ -142,7 +147,8 @@ class Dreams(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["dreaming-2026-04-21"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -166,12 +172,13 @@ class Dreams(SyncAPIResource):
         page: str | Omit = omit,
         statuses: List[BetaDreamStatus] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> SyncPageCursor[BetaDream]:
         """
         List Dreams
@@ -207,7 +214,8 @@ class Dreams(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["dreaming-2026-04-21"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -241,12 +249,13 @@ class Dreams(SyncAPIResource):
         dream_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaDream:
         """
         Archive a Dream
@@ -269,7 +278,8 @@ class Dreams(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["dreaming-2026-04-21"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -288,12 +298,13 @@ class Dreams(SyncAPIResource):
         dream_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaDream:
         """
         Cancel a Dream
@@ -316,7 +327,8 @@ class Dreams(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["dreaming-2026-04-21"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -359,12 +371,13 @@ class AsyncDreams(AsyncAPIResource):
         instructions: Optional[str] | Omit = omit,
         output_behavior: BetaOutputBehaviorParam | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaDream:
         """
         Create a Dream
@@ -391,7 +404,8 @@ class AsyncDreams(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["dreaming-2026-04-21"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -419,12 +433,13 @@ class AsyncDreams(AsyncAPIResource):
         dream_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaDream:
         """
         Get a Dream
@@ -447,7 +462,8 @@ class AsyncDreams(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["dreaming-2026-04-21"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -471,12 +487,13 @@ class AsyncDreams(AsyncAPIResource):
         page: str | Omit = omit,
         statuses: List[BetaDreamStatus] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> AsyncPaginator[BetaDream, AsyncPageCursor[BetaDream]]:
         """
         List Dreams
@@ -512,7 +529,8 @@ class AsyncDreams(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["dreaming-2026-04-21"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -546,12 +564,13 @@ class AsyncDreams(AsyncAPIResource):
         dream_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaDream:
         """
         Archive a Dream
@@ -574,7 +593,8 @@ class AsyncDreams(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["dreaming-2026-04-21"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -593,12 +613,13 @@ class AsyncDreams(AsyncAPIResource):
         dream_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaDream:
         """
         Cancel a Dream
@@ -621,7 +642,8 @@ class AsyncDreams(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["dreaming-2026-04-21"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -640,19 +662,19 @@ class DreamsWithRawResponse:
     def __init__(self, dreams: Dreams) -> None:
         self._dreams = dreams
 
-        self.create = _legacy_response.to_raw_response_wrapper(
+        self.create = to_raw_response_wrapper(
             dreams.create,
         )
-        self.retrieve = _legacy_response.to_raw_response_wrapper(
+        self.retrieve = to_raw_response_wrapper(
             dreams.retrieve,
         )
-        self.list = _legacy_response.to_raw_response_wrapper(
+        self.list = to_raw_response_wrapper(
             dreams.list,
         )
-        self.archive = _legacy_response.to_raw_response_wrapper(
+        self.archive = to_raw_response_wrapper(
             dreams.archive,
         )
-        self.cancel = _legacy_response.to_raw_response_wrapper(
+        self.cancel = to_raw_response_wrapper(
             dreams.cancel,
         )
 
@@ -661,19 +683,19 @@ class AsyncDreamsWithRawResponse:
     def __init__(self, dreams: AsyncDreams) -> None:
         self._dreams = dreams
 
-        self.create = _legacy_response.async_to_raw_response_wrapper(
+        self.create = async_to_raw_response_wrapper(
             dreams.create,
         )
-        self.retrieve = _legacy_response.async_to_raw_response_wrapper(
+        self.retrieve = async_to_raw_response_wrapper(
             dreams.retrieve,
         )
-        self.list = _legacy_response.async_to_raw_response_wrapper(
+        self.list = async_to_raw_response_wrapper(
             dreams.list,
         )
-        self.archive = _legacy_response.async_to_raw_response_wrapper(
+        self.archive = async_to_raw_response_wrapper(
             dreams.archive,
         )
-        self.cancel = _legacy_response.async_to_raw_response_wrapper(
+        self.cancel = async_to_raw_response_wrapper(
             dreams.cancel,
         )
 

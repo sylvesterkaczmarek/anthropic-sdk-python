@@ -1,14 +1,11 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 from typing import Dict, List, Optional
 from itertools import chain
 from typing_extensions import Literal
 
-import httpx
+import httpx2
 
-from .... import _legacy_response
 from .work import (
     Work,
     AsyncWork,
@@ -21,7 +18,12 @@ from ...._types import Body, Omit, Query, Headers, NotGiven, omit, not_given
 from ...._utils import is_given, path_template, maybe_transform, strip_not_given, async_maybe_transform
 from ...._compat import cached_property
 from ...._resource import SyncAPIResource, AsyncAPIResource
-from ...._response import to_streamed_response_wrapper, async_to_streamed_response_wrapper
+from ...._response import (
+    to_raw_response_wrapper,
+    to_streamed_response_wrapper,
+    async_to_raw_response_wrapper,
+    async_to_streamed_response_wrapper,
+)
 from ....pagination import SyncPageCursor, AsyncPageCursor
 from ....types.beta import environment_list_params, environment_create_params, environment_update_params
 from ...._base_client import AsyncPaginator, make_request_options
@@ -65,12 +67,13 @@ class Environments(SyncAPIResource):
         metadata: Dict[str, str] | Omit = omit,
         scope: Optional[Literal["organization", "account"]] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaEnvironment:
         """
         Create a new environment with the specified configuration.
@@ -86,8 +89,8 @@ class Environments(SyncAPIResource):
 
           scope: The visibility scope for this environment. 'organization' makes the environment
               visible to all accounts. 'account' restricts visibility to the owning account
-              only. Only applicable for self-hosted environments. If not specified, defaults
-              based on organization type.
+              only. API organizations support only 'organization'; 'account' is rejected. If
+              not specified, defaults based on organization type.
 
           betas: Optional header to specify the beta version(s) you want to use.
 
@@ -104,7 +107,8 @@ class Environments(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -133,12 +137,13 @@ class Environments(SyncAPIResource):
         environment_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaEnvironment:
         """
         Retrieve a specific environment by ID.
@@ -161,7 +166,8 @@ class Environments(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -185,12 +191,13 @@ class Environments(SyncAPIResource):
         name: Optional[str] | Omit = omit,
         scope: Optional[Literal["organization", "account"]] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaEnvironment:
         """
         Update an existing environment's configuration.
@@ -198,7 +205,8 @@ class Environments(SyncAPIResource):
         Args:
           config: Updated environment configuration
 
-          description: Updated description of the environment
+          description: Updated description of the environment. Omit to preserve; null clears to null;
+              an empty string is stored as an empty string.
 
           metadata: User-provided metadata key-value pairs. Set a value to null or empty string to
               delete the key.
@@ -226,7 +234,8 @@ class Environments(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -257,12 +266,13 @@ class Environments(SyncAPIResource):
         limit: int | Omit = omit,
         page: Optional[str] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> SyncPageCursor[BetaEnvironment]:
         """
         List environments with pagination support.
@@ -290,7 +300,8 @@ class Environments(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -321,12 +332,13 @@ class Environments(SyncAPIResource):
         environment_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaEnvironmentDeleteResponse:
         """Delete an environment by ID.
 
@@ -350,7 +362,8 @@ class Environments(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -369,12 +382,13 @@ class Environments(SyncAPIResource):
         environment_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaEnvironment:
         """Archive an environment by ID.
 
@@ -399,7 +413,8 @@ class Environments(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -447,12 +462,13 @@ class AsyncEnvironments(AsyncAPIResource):
         metadata: Dict[str, str] | Omit = omit,
         scope: Optional[Literal["organization", "account"]] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaEnvironment:
         """
         Create a new environment with the specified configuration.
@@ -468,8 +484,8 @@ class AsyncEnvironments(AsyncAPIResource):
 
           scope: The visibility scope for this environment. 'organization' makes the environment
               visible to all accounts. 'account' restricts visibility to the owning account
-              only. Only applicable for self-hosted environments. If not specified, defaults
-              based on organization type.
+              only. API organizations support only 'organization'; 'account' is rejected. If
+              not specified, defaults based on organization type.
 
           betas: Optional header to specify the beta version(s) you want to use.
 
@@ -486,7 +502,8 @@ class AsyncEnvironments(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -515,12 +532,13 @@ class AsyncEnvironments(AsyncAPIResource):
         environment_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaEnvironment:
         """
         Retrieve a specific environment by ID.
@@ -543,7 +561,8 @@ class AsyncEnvironments(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -567,12 +586,13 @@ class AsyncEnvironments(AsyncAPIResource):
         name: Optional[str] | Omit = omit,
         scope: Optional[Literal["organization", "account"]] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaEnvironment:
         """
         Update an existing environment's configuration.
@@ -580,7 +600,8 @@ class AsyncEnvironments(AsyncAPIResource):
         Args:
           config: Updated environment configuration
 
-          description: Updated description of the environment
+          description: Updated description of the environment. Omit to preserve; null clears to null;
+              an empty string is stored as an empty string.
 
           metadata: User-provided metadata key-value pairs. Set a value to null or empty string to
               delete the key.
@@ -608,7 +629,8 @@ class AsyncEnvironments(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -639,12 +661,13 @@ class AsyncEnvironments(AsyncAPIResource):
         limit: int | Omit = omit,
         page: Optional[str] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> AsyncPaginator[BetaEnvironment, AsyncPageCursor[BetaEnvironment]]:
         """
         List environments with pagination support.
@@ -672,7 +695,8 @@ class AsyncEnvironments(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -703,12 +727,13 @@ class AsyncEnvironments(AsyncAPIResource):
         environment_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaEnvironmentDeleteResponse:
         """Delete an environment by ID.
 
@@ -732,7 +757,8 @@ class AsyncEnvironments(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -751,12 +777,13 @@ class AsyncEnvironments(AsyncAPIResource):
         environment_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaEnvironment:
         """Archive an environment by ID.
 
@@ -781,7 +808,8 @@ class AsyncEnvironments(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -800,22 +828,22 @@ class EnvironmentsWithRawResponse:
     def __init__(self, environments: Environments) -> None:
         self._environments = environments
 
-        self.create = _legacy_response.to_raw_response_wrapper(
+        self.create = to_raw_response_wrapper(
             environments.create,
         )
-        self.retrieve = _legacy_response.to_raw_response_wrapper(
+        self.retrieve = to_raw_response_wrapper(
             environments.retrieve,
         )
-        self.update = _legacy_response.to_raw_response_wrapper(
+        self.update = to_raw_response_wrapper(
             environments.update,
         )
-        self.list = _legacy_response.to_raw_response_wrapper(
+        self.list = to_raw_response_wrapper(
             environments.list,
         )
-        self.delete = _legacy_response.to_raw_response_wrapper(
+        self.delete = to_raw_response_wrapper(
             environments.delete,
         )
-        self.archive = _legacy_response.to_raw_response_wrapper(
+        self.archive = to_raw_response_wrapper(
             environments.archive,
         )
 
@@ -828,22 +856,22 @@ class AsyncEnvironmentsWithRawResponse:
     def __init__(self, environments: AsyncEnvironments) -> None:
         self._environments = environments
 
-        self.create = _legacy_response.async_to_raw_response_wrapper(
+        self.create = async_to_raw_response_wrapper(
             environments.create,
         )
-        self.retrieve = _legacy_response.async_to_raw_response_wrapper(
+        self.retrieve = async_to_raw_response_wrapper(
             environments.retrieve,
         )
-        self.update = _legacy_response.async_to_raw_response_wrapper(
+        self.update = async_to_raw_response_wrapper(
             environments.update,
         )
-        self.list = _legacy_response.async_to_raw_response_wrapper(
+        self.list = async_to_raw_response_wrapper(
             environments.list,
         )
-        self.delete = _legacy_response.async_to_raw_response_wrapper(
+        self.delete = async_to_raw_response_wrapper(
             environments.delete,
         )
-        self.archive = _legacy_response.async_to_raw_response_wrapper(
+        self.archive = async_to_raw_response_wrapper(
             environments.archive,
         )
 

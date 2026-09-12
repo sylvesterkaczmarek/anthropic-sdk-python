@@ -25,6 +25,7 @@ from anthropic.lib.tools.agent_toolset import (
     beta_grep_tool,
     beta_read_tool,
     beta_write_tool,
+    _reject_read_only,
     beta_agent_toolset_20260401,
 )
 from anthropic.types.beta.beta_base64_pdf_source_param import BetaBase64PDFSourceParam
@@ -34,22 +35,27 @@ needs_pydantic_v2 = pytest.mark.skipif(PYDANTIC_V1, reason="tool functions are o
 
 
 @pytest.mark.parametrize(
-    ("description", "p", "unrestricted", "expect_error"),
+    ("description", "p", "expect_error"),
     [
-        ("relative path inside workdir resolves", "a/b.txt", False, False),
-        ("dot-dot that stays inside workdir resolves", "a/../b.txt", False, False),
-        ("dot-dot that escapes workdir is rejected", "../etc/passwd", False, True),
-        ("absolute path outside workdir is rejected by default", "/etc/passwd", False, True),
-        ("absolute path outside workdir is allowed when unrestricted_paths is set", "/etc/passwd", True, False),
+        ("relative path inside workdir resolves", "a/b.txt", False),
+        ("dot-dot that stays inside workdir resolves", "a/../b.txt", False),
+        ("dot-dot that escapes workdir is rejected", "../etc/passwd", True),
+        ("absolute path outside workdir is rejected", "/etc/passwd", True),
     ],
 )
-def test_resolve_path(tmp_path: Path, description: str, p: str, unrestricted: bool, expect_error: bool) -> None:
-    env = AgentToolContext(workdir=str(tmp_path), unrestricted_paths=unrestricted)
+def test_resolve_path(tmp_path: Path, description: str, p: str, expect_error: bool) -> None:
+    env = AgentToolContext(workdir=str(tmp_path))
     if expect_error:
         with pytest.raises(ValueError):
             resolve_path(env, p)
     else:
         assert resolve_path(env, p), description
+
+
+@pytest.mark.parametrize("value", [True, False])
+def test_unrestricted_paths_is_rejected_with_guidance(tmp_path: Path, value: bool) -> None:
+    with pytest.raises(TypeError, match="unrestricted_paths is no longer supported.*allowed_roots"):
+        AgentToolContext(workdir=str(tmp_path), unrestricted_paths=value)
 
 
 def test_resolve_path_absolute_inside_workdir(tmp_path: Path) -> None:
@@ -65,11 +71,11 @@ def test_resolve_path_absolute_inside_workdir(tmp_path: Path) -> None:
     sub.mkdir()
     assert resolve_path(env, str(sub / "b.txt")) == sub / "b.txt"
     # Still rejected: absolute outside, and absolute-that-symlinks-outside.
-    with pytest.raises(ValueError, match="escapes workdir"):
+    with pytest.raises(ValueError, match="outside the session's working directory"):
         resolve_path(env, "/etc/passwd")
     if sys.platform != "win32":
         (tmp_path / "out").symlink_to("/etc/passwd")
-        with pytest.raises(ValueError, match="escapes workdir"):
+        with pytest.raises(ValueError, match="outside the session's working directory"):
             resolve_path(env, str(tmp_path / "out"))
 
 
@@ -116,9 +122,9 @@ def test_resolve_path_dotdot_is_lexical_before_symlinks(tmp_path: Path) -> None:
     work = _symlink_fixture(tmp_path)
     env = AgentToolContext(workdir=str(work))
     for p in ("loop_a/../evil_link", "self/../evil_link"):
-        with pytest.raises(ValueError, match="escapes workdir"):
+        with pytest.raises(ValueError, match="outside the session's working directory"):
             resolve_path(env, p)
-    with pytest.raises(ValueError, match="too many levels of symbolic links|escapes workdir"):
+    with pytest.raises(ValueError, match="too many levels of symbolic links|outside the session's working directory"):
         resolve_path(env, "L")
     (work / "ok.txt").write_text("ok")
     assert resolve_path(env, "loop_a/../ok.txt") == work / "ok.txt"
@@ -130,8 +136,39 @@ def test_resolve_path_rejects_symlink_escape_live_and_dangling(tmp_path: Path) -
     (work / "dangle_out").symlink_to(tmp_path / "outside" / "nope")
     env = AgentToolContext(workdir=str(work))
     for p in ("evil_link", "dangle_out"):
-        with pytest.raises(ValueError, match="escapes workdir"):
+        with pytest.raises(ValueError, match="outside the session's working directory"):
             resolve_path(env, p)
+
+
+def test_resolve_path_allowed_roots(tmp_path: Path) -> None:
+    """A path inside an allowed root resolves; one outside the workdir and
+    every allowed root is refused, and the refusal names no internal options."""
+    work = tmp_path / "work"
+    work.mkdir()
+    mount = tmp_path / "mount"
+    mount.mkdir()
+    env = AgentToolContext(workdir=str(work), allowed_roots=[mount])
+    assert resolve_path(env, str(mount / "note.md")) == mount / "note.md"
+    assert resolve_path(env, "inside.txt") == work / "inside.txt"
+    with pytest.raises(ValueError, match="outside the session's working directory and its other permitted directories"):
+        resolve_path(env, str(tmp_path / "elsewhere" / "x"))
+    with pytest.raises(ValueError, match="outside the session's working directory and its other permitted directories"):
+        resolve_path(env, "../elsewhere/x")
+
+
+def test_resolve_path_symlink_out_of_allowed_root_is_rejected(tmp_path: Path) -> None:
+    """Symlinks are canonicalised before the containment check, so a link
+    inside an allowed root cannot reach outside it."""
+    if sys.platform == "win32":
+        pytest.skip("symlinks need privileges on windows")
+    work = tmp_path / "work"
+    work.mkdir()
+    mount = tmp_path / "mount"
+    mount.mkdir()
+    (mount / "leak").symlink_to("/etc/passwd")
+    env = AgentToolContext(workdir=str(work), allowed_roots=[mount])
+    with pytest.raises(ValueError, match="outside the session's working directory and its other permitted directories"):
+        resolve_path(env, str(mount / "leak"))
 
 
 def test_resolve_path_segment_aware_sibling(tmp_path: Path) -> None:
@@ -177,7 +214,7 @@ async def test_read_write_edit_roundtrip(tmp_path: Path) -> None:
 
 @needs_pydantic_v2
 async def test_read_view_range(tmp_path: Path) -> None:
-    (tmp_path / "f.txt").write_text("a\nb\nc\nd\n")
+    (tmp_path / "f.txt").write_bytes(b"a\nb\nc\nd\n")
     env = AgentToolContext(workdir=str(tmp_path))
     out = await beta_read_tool(env).call({"file_path": "f.txt", "view_range": [2, 3]})
     assert out == "b\nc"
@@ -195,7 +232,7 @@ async def test_read_view_range(tmp_path: Path) -> None:
     ],
 )
 async def test_read_view_range_edges(tmp_path: Path, view_range: list[int], want: str) -> None:
-    (tmp_path / "a.txt").write_text("line1\nline2\nline3")
+    (tmp_path / "a.txt").write_bytes(b"line1\nline2\nline3")
     env = AgentToolContext(workdir=str(tmp_path))
     assert await beta_read_tool(env).call({"file_path": "a.txt", "view_range": view_range}) == want
 
@@ -210,11 +247,121 @@ async def test_read_view_range_wrong_arity_is_rejected(tmp_path: Path) -> None:
 
 
 @needs_pydantic_v2
+async def test_read_preserves_crlf_line_endings(tmp_path: Path) -> None:
+    (tmp_path / "crlf.txt").write_bytes(b"line1\r\nline2\r\nline3\r\n")
+    env = AgentToolContext(workdir=str(tmp_path))
+    assert await beta_read_tool(env).call({"file_path": "crlf.txt"}) == "line1\r\nline2\r\nline3\r\n"
+    out = await beta_read_tool(env).call({"file_path": "crlf.txt", "view_range": [1, 2]})
+    assert out == "line1\r\nline2\r"
+
+
+@needs_pydantic_v2
+async def test_read_preserves_lone_cr(tmp_path: Path) -> None:
+    (tmp_path / "cr.txt").write_bytes(b"a\rb\rc\r")
+    env = AgentToolContext(workdir=str(tmp_path))
+    assert await beta_read_tool(env).call({"file_path": "cr.txt"}) == "a\rb\rc\r"
+    assert await beta_read_tool(env).call({"file_path": "cr.txt", "view_range": [1, 1]}) == "a\rb\rc\r"
+    assert await beta_read_tool(env).call({"file_path": "cr.txt", "view_range": [2, 2]}) == ""
+
+
+@needs_pydantic_v2
+async def test_edit_preserves_crlf_line_endings(tmp_path: Path) -> None:
+    path = tmp_path / "crlf.txt"
+    path.write_bytes(b"line1\r\nline2\r\nline3\r\n")
+    env = AgentToolContext(workdir=str(tmp_path))
+    await beta_edit_tool(env).call({"file_path": "crlf.txt", "old_string": "line2", "new_string": "LINE2"})
+    assert path.read_bytes() == b"line1\r\nLINE2\r\nline3\r\n"
+
+
+@needs_pydantic_v2
+async def test_write_preserves_content_bytes(tmp_path: Path) -> None:
+    env = AgentToolContext(workdir=str(tmp_path))
+    await beta_write_tool(env).call({"file_path": "w.txt", "content": "a\r\nb\nc\r"})
+    assert (tmp_path / "w.txt").read_bytes() == b"a\r\nb\nc\r"
+
+
+@needs_pydantic_v2
 async def test_read_rejects_oversized_file(tmp_path: Path) -> None:
     (tmp_path / "big.txt").write_bytes(b"a" * (257 * 1024))
     env = AgentToolContext(workdir=str(tmp_path))
-    with pytest.raises(ToolError, match="exceeds"):
+    with pytest.raises(ToolError, match="exceeds") as exc_info:
         await beta_read_tool(env).call({"file_path": "big.txt"})
+    assert "view_range" in str(exc_info.value)
+    assert "bash" not in str(exc_info.value)
+
+
+@needs_pydantic_v2
+async def test_read_oversized_file_view_range_wrong_arity_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "big.txt").write_bytes(b"a" * (257 * 1024))
+    env = AgentToolContext(workdir=str(tmp_path))
+    with pytest.raises(ToolError) as exc_info:
+        await beta_read_tool(env).call({"file_path": "big.txt", "view_range": [2]})
+    assert str(exc_info.value) == "read: view_range must be [start_line, end_line]"
+
+
+@needs_pydantic_v2
+@pytest.mark.parametrize(
+    ("view_range", "want"),
+    [
+        ([2, 2], "line2"),
+        ([2, 0], "line2\nline3\n"),
+        ([10, 12], ""),
+        ([3, 1], ""),
+    ],
+)
+async def test_read_view_range_streams_file_over_cap(tmp_path: Path, view_range: list[int], want: str) -> None:
+    (tmp_path / "a.txt").write_bytes(b"line1\nline2\nline3\n")
+    env = AgentToolContext(workdir=str(tmp_path), max_file_bytes=16)
+    assert await beta_read_tool(env).call({"file_path": "a.txt", "view_range": view_range}) == want
+
+
+@needs_pydantic_v2
+async def test_read_view_range_over_cap_rejects_oversized_slice(tmp_path: Path) -> None:
+    (tmp_path / "a.txt").write_bytes(b"line1\nline2\nline3\n")
+    env = AgentToolContext(workdir=str(tmp_path), max_file_bytes=16)
+    with pytest.raises(ToolError, match="exceeds") as exc_info:
+        await beta_read_tool(env).call({"file_path": "a.txt", "view_range": [1, 3]})
+    assert "Narrow the view_range" in str(exc_info.value)
+    assert "bash" not in str(exc_info.value)
+
+
+@needs_pydantic_v2
+async def test_read_view_range_over_cap_single_long_line(tmp_path: Path) -> None:
+    (tmp_path / "a.txt").write_bytes(b"x" * 100 + b"\nok\n")
+    env = AgentToolContext(workdir=str(tmp_path), max_file_bytes=16)
+    with pytest.raises(ToolError, match="cannot return part of a line"):
+        await beta_read_tool(env).call({"file_path": "a.txt", "view_range": [1, 1]})
+    assert await beta_read_tool(env).call({"file_path": "a.txt", "view_range": [2, 2]}) == "ok"
+
+
+@needs_pydantic_v2
+async def test_read_view_range_over_cap_preserves_crlf_line_endings(tmp_path: Path) -> None:
+    (tmp_path / "a.txt").write_bytes(b"line1\r\nline2\r\nline3\r\n")
+    env = AgentToolContext(workdir=str(tmp_path), max_file_bytes=16)
+    assert await beta_read_tool(env).call({"file_path": "a.txt", "view_range": [1, 2]}) == "line1\r\nline2\r"
+
+
+@needs_pydantic_v2
+async def test_read_view_range_over_cap_preserves_lone_cr(tmp_path: Path) -> None:
+    (tmp_path / "a.txt").write_bytes(b"a\rb\rc\r")
+    env = AgentToolContext(workdir=str(tmp_path), max_file_bytes=4)
+    with pytest.raises(ToolError, match="cannot return part of a line"):
+        await beta_read_tool(env).call({"file_path": "a.txt", "view_range": [1, 1]})
+    assert await beta_read_tool(env).call({"file_path": "a.txt", "view_range": [2, 2]}) == ""
+
+    (tmp_path / "b.txt").write_bytes(b"a\rb\rc\r\n0123456789\n")
+    env = AgentToolContext(workdir=str(tmp_path), max_file_bytes=16)
+    assert await beta_read_tool(env).call({"file_path": "b.txt", "view_range": [1, 1]}) == "a\rb\rc\r"
+    assert await beta_read_tool(env).call({"file_path": "b.txt", "view_range": [3, 3]}) == ""
+
+
+@needs_pydantic_v2
+async def test_read_view_range_over_cap_crosses_chunk_boundaries(tmp_path: Path) -> None:
+    rows = [f"row{i:04d}" + "." * 90 for i in range(1, 5001)]
+    (tmp_path / "big.txt").write_bytes("".join(row + "\n" for row in rows).encode())
+    env = AgentToolContext(workdir=str(tmp_path))
+    out = await beta_read_tool(env).call({"file_path": "big.txt", "view_range": [1000, 1002]})
+    assert out == "\n".join(rows[999:1002])
 
 
 @needs_pydantic_v2
@@ -229,8 +376,9 @@ async def test_read_rejects_directory(tmp_path: Path) -> None:
 async def test_edit_rejects_oversized_file(tmp_path: Path) -> None:
     (tmp_path / "big.txt").write_bytes(b"a" * (257 * 1024))
     env = AgentToolContext(workdir=str(tmp_path))
-    with pytest.raises(ToolError, match="exceeds"):
+    with pytest.raises(ToolError, match="exceeds") as exc_info:
         await beta_edit_tool(env).call({"file_path": "big.txt", "old_string": "a", "new_string": "b"})
+    assert "bash" not in str(exc_info.value)
 
 
 @needs_pydantic_v2
@@ -253,8 +401,9 @@ async def test_edit_normal_within_limit(tmp_path: Path) -> None:
 async def test_edit_custom_max_bytes_rejects_below_cap(tmp_path: Path) -> None:
     (tmp_path / "f.txt").write_bytes(b"OLD" + b"\x00" * 2000)
     env = AgentToolContext(workdir=str(tmp_path), max_file_bytes=1024)
-    with pytest.raises(ToolError, match="exceeds"):
+    with pytest.raises(ToolError, match="exceeds") as exc_info:
         await beta_edit_tool(env).call({"file_path": "f.txt", "old_string": "OLD", "new_string": "NEW"})
+    assert "bash" not in str(exc_info.value)
 
 
 @needs_pydantic_v2
@@ -284,8 +433,10 @@ async def test_edit_rejects_directory_even_when_uncapped(tmp_path: Path) -> None
 async def test_read_custom_max_bytes_rejects_below_cap(tmp_path: Path) -> None:
     (tmp_path / "f.txt").write_bytes(b"a" * 2000)
     env = AgentToolContext(workdir=str(tmp_path), max_file_bytes=1024)
-    with pytest.raises(ToolError, match="exceeds"):
+    with pytest.raises(ToolError, match="exceeds") as exc_info:
         await beta_read_tool(env).call({"file_path": "f.txt"})
+    assert "view_range" in str(exc_info.value)
+    assert "bash" not in str(exc_info.value)
 
 
 @needs_pydantic_v2
@@ -642,7 +793,7 @@ async def test_read_through_symlink_escape_is_rejected(tmp_path: Path) -> None:
     work.mkdir()
     (work / "escape").symlink_to(outside)
     env = AgentToolContext(workdir=str(work))
-    with pytest.raises(ToolError, match="escapes workdir"):
+    with pytest.raises(ToolError, match="outside the session's working directory"):
         await beta_read_tool(env).call({"file_path": "escape/secret.txt"})
 
 
@@ -772,3 +923,82 @@ async def test_grep_skips_symlinked_files(tmp_path: Path, monkeypatch: pytest.Mo
     monkeypatch.setattr("shutil.which", lambda _name: None)  # type: ignore[arg-type]
     res = await beta_grep_tool(env).call({"pattern": "TOPSECRET"})
     assert res == "no matches"
+
+
+@needs_pydantic_v2
+async def test_file_tools_confinement_matrix(tmp_path: Path) -> None:
+    """The full path policy through the real tools: the workdir works, a memory
+    folder mounted outside it works, a read-only memory folder reads but
+    refuses writes, and everywhere else is refused."""
+    work = tmp_path / "work"
+    work.mkdir()
+    mount = tmp_path / "mnt" / "notes"
+    mount.mkdir(parents=True)
+    ro = tmp_path / "mnt" / "facts"
+    ro.mkdir(parents=True)
+    (ro / "facts.md").write_text("immutable")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.txt").write_text("secret")
+
+    env = AgentToolContext(workdir=str(work), allowed_roots=[mount, ro], read_only_roots=[ro.resolve()])
+    read = beta_read_tool(env)
+    write = beta_write_tool(env)
+    edit = beta_edit_tool(env)
+
+    await write.call({"file_path": "w.txt", "content": "in workdir"})
+    assert (work / "w.txt").read_text() == "in workdir"
+
+    await write.call({"file_path": str(mount / "note.md"), "content": "remembered"})
+    assert await read.call({"file_path": str(mount / "note.md")}) == "remembered"
+    await edit.call({"file_path": str(mount / "note.md"), "old_string": "remembered", "new_string": "edited"})
+    assert (mount / "note.md").read_text() == "edited"
+
+    assert await read.call({"file_path": str(ro / "facts.md")}) == "immutable"
+    with pytest.raises(ToolError, match="read-only"):
+        await write.call({"file_path": str(ro / "facts.md"), "content": "x"})
+    assert (ro / "facts.md").read_text() == "immutable"
+
+    with pytest.raises(ToolError, match="outside the session's working directory and its other permitted directories"):
+        await read.call({"file_path": str(outside / "secret.txt")})
+    with pytest.raises(ToolError, match="outside the session's working directory and its other permitted directories"):
+        await write.call({"file_path": str(outside / "new.txt"), "content": "x"})
+    assert not (outside / "new.txt").exists()
+
+
+@needs_pydantic_v2
+async def test_glob_and_grep_reach_an_allowed_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    work = tmp_path / "work"
+    work.mkdir()
+    mount = tmp_path / "mnt" / "notes"
+    mount.mkdir(parents=True)
+    (mount / "note.md").write_text("remembered fact")
+    env = AgentToolContext(workdir=str(work), allowed_roots=[mount])
+
+    res = await beta_glob_tool(env).call({"pattern": "*.md", "path": str(mount)})
+    assert res == str(mount / "note.md")
+
+    monkeypatch.setattr("shutil.which", lambda _name: None)  # type: ignore[arg-type]
+    res = await beta_grep_tool(env).call({"pattern": "remembered", "path": str(mount)})
+    assert isinstance(res, str)
+    assert "note.md" in res
+
+
+def test_a_symlinked_read_only_root_still_refuses_writes(tmp_path: Path) -> None:
+    """allowed_roots entries resolve at check time, so read_only_roots must
+    too — the same symlinked path must not grant access on one side while
+    its write protection misses on the other."""
+    if sys.platform == "win32":
+        pytest.skip("symlinks need privileges on windows")
+    work = tmp_path / "work"
+    work.mkdir()
+    real = tmp_path / "real-store"
+    real.mkdir()
+    link = tmp_path / "link-store"
+    link.symlink_to(real)
+    env = AgentToolContext(workdir=str(work), allowed_roots=[link], read_only_roots=[link])
+
+    target = resolve_path(env, str(link / "note.md"))
+    assert target == real / "note.md"
+    with pytest.raises(ToolError, match="read-only"):
+        _reject_read_only(env, target, op="write", file_path=str(link / "note.md"))

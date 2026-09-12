@@ -4,7 +4,7 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Any, Type, Generic, Callable, cast
 from typing_extensions import Self, Iterator, Awaitable, AsyncIterator, assert_never
 
-import httpx
+import httpx2
 from pydantic import BaseModel
 
 from anthropic.types.tool_use_block import ToolUseBlock
@@ -50,15 +50,20 @@ class MessageStream(Generic[ResponseFormatT]):
         self.text_stream = self.__stream_text__()
         self._iterator = self.__stream__()
         self.__final_message_snapshot: ParsedMessage[ResponseFormatT] | None = None
+        self.__json_bufs: dict[int, bytes] = {}
         self.__output_format = output_format
 
     @property
-    def response(self) -> httpx.Response:
+    def response(self) -> httpx2.Response:
         return self._raw_stream.response
 
     @property
     def request_id(self) -> str | None:
         return self.response.headers.get("request-id")  # type: ignore[no-any-return]
+
+    @property
+    def workspace_id(self) -> str | None:
+        return self.response.headers.get("anthropic-workspace-id")  # type: ignore[no-any-return]
 
     def __next__(self) -> ParsedMessageStreamEvent[ResponseFormatT]:
         return self._iterator.__next__()
@@ -119,7 +124,6 @@ class MessageStream(Generic[ResponseFormatT]):
         """Blocks until the stream has been consumed"""
         consume_sync_iterator(self)
 
-    # properties
     @property
     def current_message_snapshot(self) -> ParsedMessage[ResponseFormatT]:
         assert self.__final_message_snapshot is not None
@@ -130,6 +134,7 @@ class MessageStream(Generic[ResponseFormatT]):
             self.__final_message_snapshot = accumulate_event(
                 event=sse_event,
                 current_snapshot=self.__final_message_snapshot,
+                json_bufs=self.__json_bufs,
                 output_format=self.__output_format,
             )
 
@@ -198,15 +203,20 @@ class AsyncMessageStream(Generic[ResponseFormatT]):
         self.text_stream = self.__stream_text__()
         self._iterator = self.__stream__()
         self.__final_message_snapshot: ParsedMessage[ResponseFormatT] | None = None
+        self.__json_bufs: dict[int, bytes] = {}
         self.__output_format = output_format
 
     @property
-    def response(self) -> httpx.Response:
+    def response(self) -> httpx2.Response:
         return self._raw_stream.response
 
     @property
     def request_id(self) -> str | None:
         return self.response.headers.get("request-id")  # type: ignore[no-any-return]
+
+    @property
+    def workspace_id(self) -> str | None:
+        return self.response.headers.get("anthropic-workspace-id")  # type: ignore[no-any-return]
 
     async def __anext__(self) -> ParsedMessageStreamEvent[ResponseFormatT]:
         return await self._iterator.__anext__()
@@ -267,7 +277,6 @@ class AsyncMessageStream(Generic[ResponseFormatT]):
         """Waits until the stream has been consumed"""
         await consume_async_iterator(self)
 
-    # properties
     @property
     def current_message_snapshot(self) -> ParsedMessage[ResponseFormatT]:
         assert self.__final_message_snapshot is not None
@@ -278,6 +287,7 @@ class AsyncMessageStream(Generic[ResponseFormatT]):
             self.__final_message_snapshot = accumulate_event(
                 event=sse_event,
                 current_snapshot=self.__final_message_snapshot,
+                json_bufs=self.__json_bufs,
                 output_format=self.__output_format,
             )
 
@@ -422,8 +432,6 @@ def build_events(
     return events_to_fire
 
 
-JSON_BUF_PROPERTY = "__json_buf"
-
 TRACKS_TOOL_INPUT = (
     ToolUseBlock,
     ServerToolUseBlock,
@@ -434,6 +442,7 @@ def accumulate_event(
     *,
     event: RawMessageStreamEvent,
     current_snapshot: ParsedMessage[ResponseFormatT] | None,
+    json_bufs: dict[int, bytes],
     output_format: ResponseFormatT | NotGiven = not_given,
 ) -> ParsedMessage[ResponseFormatT]:
     if not isinstance(cast(Any, event), BaseModel):
@@ -470,10 +479,7 @@ def accumulate_event(
             if isinstance(content, TRACKS_TOOL_INPUT):
                 from jiter import from_json
 
-                # we need to keep track of the raw JSON string as well so that we can
-                # re-parse it for each delta, for now we just store it as an untyped
-                # property on the snapshot
-                json_buf = cast(bytes, getattr(content, JSON_BUF_PROPERTY, b""))
+                json_buf = json_bufs.get(event.index, b"")
                 json_buf += bytes(event.delta.partial_json, "utf-8")
 
                 if json_buf:
@@ -484,7 +490,7 @@ def accumulate_event(
                             f"Unable to parse tool parameter JSON from model. Please retry your request or adjust your prompt. Error: {e}. JSON: {json_buf.decode('utf-8')}"
                         ) from e
 
-                setattr(content, JSON_BUF_PROPERTY, json_buf)
+                json_bufs[event.index] = json_buf
         elif event.delta.type == "citations_delta":
             if content.type == "text":
                 if not content.citations:

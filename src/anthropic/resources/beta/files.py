@@ -1,15 +1,21 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
-from typing import List, Mapping, cast
-from itertools import chain
+from typing import List, Mapping, Optional, cast
 
-import httpx
+import httpx2
 
-from ... import _legacy_response
 from ..._files import deepcopy_with_paths
-from ..._types import Body, Omit, Query, Headers, NotGiven, FileTypes, omit, not_given
+from ..._types import (
+    Body,
+    Omit,
+    Query,
+    Headers,
+    NotGiven,
+    FileTypes,
+    SequenceNotStr,
+    omit,
+    not_given,
+)
 from ..._utils import is_given, extract_files, path_template, maybe_transform, strip_not_given, async_maybe_transform
 from ..._compat import cached_property
 from ..._resource import SyncAPIResource, AsyncAPIResource
@@ -18,14 +24,16 @@ from ..._response import (
     AsyncBinaryAPIResponse,
     StreamedBinaryAPIResponse,
     AsyncStreamedBinaryAPIResponse,
+    to_raw_response_wrapper,
     to_streamed_response_wrapper,
+    async_to_raw_response_wrapper,
     to_custom_raw_response_wrapper,
     async_to_streamed_response_wrapper,
     to_custom_streamed_response_wrapper,
     async_to_custom_raw_response_wrapper,
     async_to_custom_streamed_response_wrapper,
 )
-from ...pagination import SyncPage, AsyncPage
+from ...pagination import SyncPageCursor, AsyncPageCursor
 from ...types.beta import file_list_params, file_upload_params
 from ..._base_client import (
     AsyncPaginator,
@@ -33,9 +41,9 @@ from ..._base_client import (
     make_request_options,
 )
 from ...lib._stainless_helpers import stainless_helper_header_from_file as _stainless_helper_header_from_file
-from ...types.beta.deleted_file import DeletedFile
-from ...types.beta.file_metadata import FileMetadata
 from ...types.anthropic_beta_param import AnthropicBetaParam
+from ...types.beta.beta_deleted_file import BetaDeletedFile
+from ...types.beta.beta_file_metadata import BetaFileMetadata
 
 __all__ = ["Files", "AsyncFiles"]
 
@@ -63,32 +71,35 @@ class Files(SyncAPIResource):
     def list(
         self,
         *,
-        after_id: str | Omit = omit,
-        before_id: str | Omit = omit,
+        ids: Optional[SequenceNotStr[str]] | Omit = omit,
         limit: int | Omit = omit,
+        page: Optional[str] | Omit = omit,
         scope_id: str | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
-    ) -> SyncPage[FileMetadata]:
-        """List Files
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
+    ) -> SyncPageCursor[BetaFileMetadata]:
+        """
+        List Files
 
         Args:
-          after_id: ID of the object to use as a cursor for pagination.
-
-        When provided, returns the
-              page of results immediately after this object.
-
-          before_id: ID of the object to use as a cursor for pagination. When provided, returns the
-              page of results immediately before this object.
+          ids: Restrict the result set to Files whose `id` is in this list. At most 100 entries
+              (after de-duplication). Mutually exclusive with `page` and `limit`. When
+              supplied, the response is always a single page (`next_page` is null). IDs that
+              do not resolve to a visible File — including deleted Files — are silently
+              omitted.
 
           limit: Number of items to return per page.
 
               Defaults to `20`. Ranges from `1` to `1000`.
+
+          page: Opaque page cursor returned in a prior list response's `next_page`. Prefixed
+              `page_`.
 
           scope_id: Filter by scope ID. Only returns files associated with the specified scope
               (e.g., a session ID).
@@ -106,17 +117,15 @@ class Files(SyncAPIResource):
         extra_headers = {
             **strip_not_given(
                 {
-                    "anthropic-beta": ",".join(chain((str(e) for e in betas), ["files-api-2025-04-14"]))
-                    if is_given(betas)
-                    else not_given
+                    "anthropic-beta": ",".join(str(e) for e in betas) if is_given(betas) else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
         }
-        extra_headers = {"anthropic-beta": "files-api-2025-04-14", **(extra_headers or {})}
         return self._get_api_list(
             "/v1/files?beta=true",
-            page=SyncPage[FileMetadata],
+            page=SyncPageCursor[BetaFileMetadata],
             options=make_request_options(
                 extra_headers=extra_headers,
                 extra_query=extra_query,
@@ -124,15 +133,15 @@ class Files(SyncAPIResource):
                 timeout=timeout,
                 query=maybe_transform(
                     {
-                        "after_id": after_id,
-                        "before_id": before_id,
+                        "ids": ids,
                         "limit": limit,
+                        "page": page,
                         "scope_id": scope_id,
                     },
                     file_list_params.FileListParams,
                 ),
             ),
-            model=FileMetadata,
+            model=BetaFileMetadata,
         )
 
     def delete(
@@ -140,13 +149,14 @@ class Files(SyncAPIResource):
         file_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
-    ) -> DeletedFile:
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
+    ) -> BetaDeletedFile:
         """
         Delete File
 
@@ -168,20 +178,18 @@ class Files(SyncAPIResource):
         extra_headers = {
             **strip_not_given(
                 {
-                    "anthropic-beta": ",".join(chain((str(e) for e in betas), ["files-api-2025-04-14"]))
-                    if is_given(betas)
-                    else not_given
+                    "anthropic-beta": ",".join(str(e) for e in betas) if is_given(betas) else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
         }
-        extra_headers = {"anthropic-beta": "files-api-2025-04-14", **(extra_headers or {})}
         return self._delete(
             path_template("/v1/files/{file_id}?beta=true", file_id=file_id),
             options=make_request_options(
                 extra_headers=extra_headers, extra_query=extra_query, extra_body=extra_body, timeout=timeout
             ),
-            cast_to=DeletedFile,
+            cast_to=BetaDeletedFile,
         )
 
     def download(
@@ -189,12 +197,13 @@ class Files(SyncAPIResource):
         file_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BinaryAPIResponse:
         """
         Download File
@@ -218,14 +227,12 @@ class Files(SyncAPIResource):
         extra_headers = {
             **strip_not_given(
                 {
-                    "anthropic-beta": ",".join(chain((str(e) for e in betas), ["files-api-2025-04-14"]))
-                    if is_given(betas)
-                    else not_given
+                    "anthropic-beta": ",".join(str(e) for e in betas) if is_given(betas) else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
         }
-        extra_headers = {"anthropic-beta": "files-api-2025-04-14", **(extra_headers or {})}
         return self._get(
             path_template("/v1/files/{file_id}/content?beta=true", file_id=file_id),
             options=make_request_options(
@@ -239,13 +246,14 @@ class Files(SyncAPIResource):
         file_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
-    ) -> FileMetadata:
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
+    ) -> BetaFileMetadata:
         """
         Get File Metadata
 
@@ -267,39 +275,45 @@ class Files(SyncAPIResource):
         extra_headers = {
             **strip_not_given(
                 {
-                    "anthropic-beta": ",".join(chain((str(e) for e in betas), ["files-api-2025-04-14"]))
-                    if is_given(betas)
-                    else not_given
+                    "anthropic-beta": ",".join(str(e) for e in betas) if is_given(betas) else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
         }
-        extra_headers = {"anthropic-beta": "files-api-2025-04-14", **(extra_headers or {})}
         return self._get(
             path_template("/v1/files/{file_id}?beta=true", file_id=file_id),
             options=make_request_options(
                 extra_headers=extra_headers, extra_query=extra_query, extra_body=extra_body, timeout=timeout
             ),
-            cast_to=FileMetadata,
+            cast_to=BetaFileMetadata,
         )
 
     def upload(
         self,
         *,
         file: FileTypes,
+        expires_in_seconds: int | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
-    ) -> FileMetadata:
-        """
-        Upload File
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
+    ) -> BetaFileMetadata:
+        """Upload File
 
         Args:
-          file: The file to upload
+          file: The file to upload.
+
+        Only the final path component of the part's `filename` is
+              kept; an absent or empty `filename` is replaced with `unnamed` plus the
+              extension for the file's stored `mime_type`, when known.
+
+          expires_in_seconds: Seconds from upload until the file expires and its bytes become permanently
+              unavailable. Must be between 3600 (one hour) and 7776000 (ninety days).
 
           betas: Optional header to specify the beta version(s) you want to use.
 
@@ -314,21 +328,25 @@ class Files(SyncAPIResource):
         extra_headers = {
             **strip_not_given(
                 {
-                    "anthropic-beta": ",".join(chain((str(e) for e in betas), ["files-api-2025-04-14"]))
-                    if is_given(betas)
-                    else not_given
+                    "anthropic-beta": ",".join(str(e) for e in betas) if is_given(betas) else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
         }
-        extra_headers = {"anthropic-beta": "files-api-2025-04-14", **(extra_headers or {})}
         extra_headers = merge_headers(_stainless_helper_header_from_file(file), extra_headers)
-        body = deepcopy_with_paths({"file": file}, [["file"]])
+        body = deepcopy_with_paths(
+            {
+                "file": file,
+                "expires_in_seconds": expires_in_seconds,
+            },
+            [["file"]],
+        )
         files = extract_files(cast(Mapping[str, object], body), paths=[["file"]])
         # It should be noted that the actual Content-Type header that will be
         # sent to the server will contain a `boundary` parameter, e.g.
         # multipart/form-data; boundary=---abc--
-        extra_headers["Content-Type"] = "multipart/form-data"
+        extra_headers = {"Content-Type": "multipart/form-data", **(extra_headers or {})}
         return self._post(
             "/v1/files?beta=true",
             body=maybe_transform(body, file_upload_params.FileUploadParams),
@@ -336,7 +354,7 @@ class Files(SyncAPIResource):
             options=make_request_options(
                 extra_headers=extra_headers, extra_query=extra_query, extra_body=extra_body, timeout=timeout
             ),
-            cast_to=FileMetadata,
+            cast_to=BetaFileMetadata,
         )
 
 
@@ -363,32 +381,35 @@ class AsyncFiles(AsyncAPIResource):
     def list(
         self,
         *,
-        after_id: str | Omit = omit,
-        before_id: str | Omit = omit,
+        ids: Optional[SequenceNotStr[str]] | Omit = omit,
         limit: int | Omit = omit,
+        page: Optional[str] | Omit = omit,
         scope_id: str | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
-    ) -> AsyncPaginator[FileMetadata, AsyncPage[FileMetadata]]:
-        """List Files
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
+    ) -> AsyncPaginator[BetaFileMetadata, AsyncPageCursor[BetaFileMetadata]]:
+        """
+        List Files
 
         Args:
-          after_id: ID of the object to use as a cursor for pagination.
-
-        When provided, returns the
-              page of results immediately after this object.
-
-          before_id: ID of the object to use as a cursor for pagination. When provided, returns the
-              page of results immediately before this object.
+          ids: Restrict the result set to Files whose `id` is in this list. At most 100 entries
+              (after de-duplication). Mutually exclusive with `page` and `limit`. When
+              supplied, the response is always a single page (`next_page` is null). IDs that
+              do not resolve to a visible File — including deleted Files — are silently
+              omitted.
 
           limit: Number of items to return per page.
 
               Defaults to `20`. Ranges from `1` to `1000`.
+
+          page: Opaque page cursor returned in a prior list response's `next_page`. Prefixed
+              `page_`.
 
           scope_id: Filter by scope ID. Only returns files associated with the specified scope
               (e.g., a session ID).
@@ -406,17 +427,15 @@ class AsyncFiles(AsyncAPIResource):
         extra_headers = {
             **strip_not_given(
                 {
-                    "anthropic-beta": ",".join(chain((str(e) for e in betas), ["files-api-2025-04-14"]))
-                    if is_given(betas)
-                    else not_given
+                    "anthropic-beta": ",".join(str(e) for e in betas) if is_given(betas) else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
         }
-        extra_headers = {"anthropic-beta": "files-api-2025-04-14", **(extra_headers or {})}
         return self._get_api_list(
             "/v1/files?beta=true",
-            page=AsyncPage[FileMetadata],
+            page=AsyncPageCursor[BetaFileMetadata],
             options=make_request_options(
                 extra_headers=extra_headers,
                 extra_query=extra_query,
@@ -424,15 +443,15 @@ class AsyncFiles(AsyncAPIResource):
                 timeout=timeout,
                 query=maybe_transform(
                     {
-                        "after_id": after_id,
-                        "before_id": before_id,
+                        "ids": ids,
                         "limit": limit,
+                        "page": page,
                         "scope_id": scope_id,
                     },
                     file_list_params.FileListParams,
                 ),
             ),
-            model=FileMetadata,
+            model=BetaFileMetadata,
         )
 
     async def delete(
@@ -440,13 +459,14 @@ class AsyncFiles(AsyncAPIResource):
         file_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
-    ) -> DeletedFile:
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
+    ) -> BetaDeletedFile:
         """
         Delete File
 
@@ -468,20 +488,18 @@ class AsyncFiles(AsyncAPIResource):
         extra_headers = {
             **strip_not_given(
                 {
-                    "anthropic-beta": ",".join(chain((str(e) for e in betas), ["files-api-2025-04-14"]))
-                    if is_given(betas)
-                    else not_given
+                    "anthropic-beta": ",".join(str(e) for e in betas) if is_given(betas) else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
         }
-        extra_headers = {"anthropic-beta": "files-api-2025-04-14", **(extra_headers or {})}
         return await self._delete(
             path_template("/v1/files/{file_id}?beta=true", file_id=file_id),
             options=make_request_options(
                 extra_headers=extra_headers, extra_query=extra_query, extra_body=extra_body, timeout=timeout
             ),
-            cast_to=DeletedFile,
+            cast_to=BetaDeletedFile,
         )
 
     async def download(
@@ -489,12 +507,13 @@ class AsyncFiles(AsyncAPIResource):
         file_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> AsyncBinaryAPIResponse:
         """
         Download File
@@ -518,14 +537,12 @@ class AsyncFiles(AsyncAPIResource):
         extra_headers = {
             **strip_not_given(
                 {
-                    "anthropic-beta": ",".join(chain((str(e) for e in betas), ["files-api-2025-04-14"]))
-                    if is_given(betas)
-                    else not_given
+                    "anthropic-beta": ",".join(str(e) for e in betas) if is_given(betas) else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
         }
-        extra_headers = {"anthropic-beta": "files-api-2025-04-14", **(extra_headers or {})}
         return await self._get(
             path_template("/v1/files/{file_id}/content?beta=true", file_id=file_id),
             options=make_request_options(
@@ -539,13 +556,14 @@ class AsyncFiles(AsyncAPIResource):
         file_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
-    ) -> FileMetadata:
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
+    ) -> BetaFileMetadata:
         """
         Get File Metadata
 
@@ -567,39 +585,45 @@ class AsyncFiles(AsyncAPIResource):
         extra_headers = {
             **strip_not_given(
                 {
-                    "anthropic-beta": ",".join(chain((str(e) for e in betas), ["files-api-2025-04-14"]))
-                    if is_given(betas)
-                    else not_given
+                    "anthropic-beta": ",".join(str(e) for e in betas) if is_given(betas) else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
         }
-        extra_headers = {"anthropic-beta": "files-api-2025-04-14", **(extra_headers or {})}
         return await self._get(
             path_template("/v1/files/{file_id}?beta=true", file_id=file_id),
             options=make_request_options(
                 extra_headers=extra_headers, extra_query=extra_query, extra_body=extra_body, timeout=timeout
             ),
-            cast_to=FileMetadata,
+            cast_to=BetaFileMetadata,
         )
 
     async def upload(
         self,
         *,
         file: FileTypes,
+        expires_in_seconds: int | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
-    ) -> FileMetadata:
-        """
-        Upload File
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
+    ) -> BetaFileMetadata:
+        """Upload File
 
         Args:
-          file: The file to upload
+          file: The file to upload.
+
+        Only the final path component of the part's `filename` is
+              kept; an absent or empty `filename` is replaced with `unnamed` plus the
+              extension for the file's stored `mime_type`, when known.
+
+          expires_in_seconds: Seconds from upload until the file expires and its bytes become permanently
+              unavailable. Must be between 3600 (one hour) and 7776000 (ninety days).
 
           betas: Optional header to specify the beta version(s) you want to use.
 
@@ -614,21 +638,25 @@ class AsyncFiles(AsyncAPIResource):
         extra_headers = {
             **strip_not_given(
                 {
-                    "anthropic-beta": ",".join(chain((str(e) for e in betas), ["files-api-2025-04-14"]))
-                    if is_given(betas)
-                    else not_given
+                    "anthropic-beta": ",".join(str(e) for e in betas) if is_given(betas) else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
         }
-        extra_headers = {"anthropic-beta": "files-api-2025-04-14", **(extra_headers or {})}
         extra_headers = merge_headers(_stainless_helper_header_from_file(file), extra_headers)
-        body = deepcopy_with_paths({"file": file}, [["file"]])
+        body = deepcopy_with_paths(
+            {
+                "file": file,
+                "expires_in_seconds": expires_in_seconds,
+            },
+            [["file"]],
+        )
         files = extract_files(cast(Mapping[str, object], body), paths=[["file"]])
         # It should be noted that the actual Content-Type header that will be
         # sent to the server will contain a `boundary` parameter, e.g.
         # multipart/form-data; boundary=---abc--
-        extra_headers["Content-Type"] = "multipart/form-data"
+        extra_headers = {"Content-Type": "multipart/form-data", **(extra_headers or {})}
         return await self._post(
             "/v1/files?beta=true",
             body=await async_maybe_transform(body, file_upload_params.FileUploadParams),
@@ -636,7 +664,7 @@ class AsyncFiles(AsyncAPIResource):
             options=make_request_options(
                 extra_headers=extra_headers, extra_query=extra_query, extra_body=extra_body, timeout=timeout
             ),
-            cast_to=FileMetadata,
+            cast_to=BetaFileMetadata,
         )
 
 
@@ -644,20 +672,20 @@ class FilesWithRawResponse:
     def __init__(self, files: Files) -> None:
         self._files = files
 
-        self.list = _legacy_response.to_raw_response_wrapper(
+        self.list = to_raw_response_wrapper(
             files.list,
         )
-        self.delete = _legacy_response.to_raw_response_wrapper(
+        self.delete = to_raw_response_wrapper(
             files.delete,
         )
         self.download = to_custom_raw_response_wrapper(
             files.download,
             BinaryAPIResponse,
         )
-        self.retrieve_metadata = _legacy_response.to_raw_response_wrapper(
+        self.retrieve_metadata = to_raw_response_wrapper(
             files.retrieve_metadata,
         )
-        self.upload = _legacy_response.to_raw_response_wrapper(
+        self.upload = to_raw_response_wrapper(
             files.upload,
         )
 
@@ -666,20 +694,20 @@ class AsyncFilesWithRawResponse:
     def __init__(self, files: AsyncFiles) -> None:
         self._files = files
 
-        self.list = _legacy_response.async_to_raw_response_wrapper(
+        self.list = async_to_raw_response_wrapper(
             files.list,
         )
-        self.delete = _legacy_response.async_to_raw_response_wrapper(
+        self.delete = async_to_raw_response_wrapper(
             files.delete,
         )
         self.download = async_to_custom_raw_response_wrapper(
             files.download,
             AsyncBinaryAPIResponse,
         )
-        self.retrieve_metadata = _legacy_response.async_to_raw_response_wrapper(
+        self.retrieve_metadata = async_to_raw_response_wrapper(
             files.retrieve_metadata,
         )
-        self.upload = _legacy_response.async_to_raw_response_wrapper(
+        self.upload = async_to_raw_response_wrapper(
             files.upload,
         )
 

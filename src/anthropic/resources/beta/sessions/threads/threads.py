@@ -1,13 +1,10 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 from typing import List
 from itertools import chain
 
-import httpx
+import httpx2
 
-from ..... import _legacy_response
 from .events import (
     Events,
     AsyncEvents,
@@ -20,7 +17,12 @@ from ....._types import Body, Omit, Query, Headers, NotGiven, omit, not_given
 from ....._utils import is_given, path_template, maybe_transform, strip_not_given
 from ....._compat import cached_property
 from ....._resource import SyncAPIResource, AsyncAPIResource
-from ....._response import to_streamed_response_wrapper, async_to_streamed_response_wrapper
+from ....._response import (
+    to_raw_response_wrapper,
+    to_streamed_response_wrapper,
+    async_to_raw_response_wrapper,
+    async_to_streamed_response_wrapper,
+)
 from .....pagination import SyncPageCursor, AsyncPageCursor
 from ....._base_client import AsyncPaginator, make_request_options
 from .....types.beta.sessions import thread_list_params
@@ -60,12 +62,13 @@ class Threads(SyncAPIResource):
         *,
         session_id: str,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSessionThread:
         """
         Get Session Thread
@@ -90,7 +93,8 @@ class Threads(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -113,12 +117,13 @@ class Threads(SyncAPIResource):
         limit: int | Omit = omit,
         page: str | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> SyncPageCursor[BetaManagedAgentsSessionThread]:
         """List Session Threads
 
@@ -127,7 +132,7 @@ class Threads(SyncAPIResource):
 
         Defaults to 1000.
 
-          page: Opaque pagination cursor from a previous response's next_page. Forward-only.
+          page: Opaque pagination cursor from a previous response's `next_page`. Forward-only.
 
           betas: Optional header to specify the beta version(s) you want to use.
 
@@ -146,7 +151,8 @@ class Threads(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -177,12 +183,13 @@ class Threads(SyncAPIResource):
         *,
         session_id: str,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSessionThread:
         """
         Archive Session Thread
@@ -207,7 +214,8 @@ class Threads(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -256,12 +264,13 @@ class AsyncThreads(AsyncAPIResource):
         *,
         session_id: str,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSessionThread:
         """
         Get Session Thread
@@ -286,7 +295,8 @@ class AsyncThreads(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -309,12 +319,13 @@ class AsyncThreads(AsyncAPIResource):
         limit: int | Omit = omit,
         page: str | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> AsyncPaginator[BetaManagedAgentsSessionThread, AsyncPageCursor[BetaManagedAgentsSessionThread]]:
         """List Session Threads
 
@@ -323,7 +334,7 @@ class AsyncThreads(AsyncAPIResource):
 
         Defaults to 1000.
 
-          page: Opaque pagination cursor from a previous response's next_page. Forward-only.
+          page: Opaque pagination cursor from a previous response's `next_page`. Forward-only.
 
           betas: Optional header to specify the beta version(s) you want to use.
 
@@ -342,7 +353,8 @@ class AsyncThreads(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -373,12 +385,13 @@ class AsyncThreads(AsyncAPIResource):
         *,
         session_id: str,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSessionThread:
         """
         Archive Session Thread
@@ -403,7 +416,8 @@ class AsyncThreads(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -426,13 +440,13 @@ class ThreadsWithRawResponse:
     def __init__(self, threads: Threads) -> None:
         self._threads = threads
 
-        self.retrieve = _legacy_response.to_raw_response_wrapper(
+        self.retrieve = to_raw_response_wrapper(
             threads.retrieve,
         )
-        self.list = _legacy_response.to_raw_response_wrapper(
+        self.list = to_raw_response_wrapper(
             threads.list,
         )
-        self.archive = _legacy_response.to_raw_response_wrapper(
+        self.archive = to_raw_response_wrapper(
             threads.archive,
         )
 
@@ -445,13 +459,13 @@ class AsyncThreadsWithRawResponse:
     def __init__(self, threads: AsyncThreads) -> None:
         self._threads = threads
 
-        self.retrieve = _legacy_response.async_to_raw_response_wrapper(
+        self.retrieve = async_to_raw_response_wrapper(
             threads.retrieve,
         )
-        self.list = _legacy_response.async_to_raw_response_wrapper(
+        self.list = async_to_raw_response_wrapper(
             threads.list,
         )
-        self.archive = _legacy_response.async_to_raw_response_wrapper(
+        self.archive = async_to_raw_response_wrapper(
             threads.archive,
         )
 

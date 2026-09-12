@@ -1,17 +1,22 @@
 import re
 import json
+import base64
+import struct
 import typing as t
+import binascii
 import tempfile
 import threading
 from typing import TypedDict, cast
 from typing_extensions import Protocol
 
-import httpx
+import httpx2
 import pytest
 from respx import MockRouter
 
 from anthropic import AnthropicBedrock, AsyncAnthropicBedrock, beta_tool, beta_async_tool
 from anthropic._compat import PYDANTIC_V1
+from anthropic._models import FinalRequestOptions
+from anthropic.lib.bedrock._client import _prepare_options
 from anthropic.lib.bedrock._stream_decoder import _chunk_bytes_to_sse
 
 sync_client = AnthropicBedrock(
@@ -27,7 +32,7 @@ async_client = AsyncAnthropicBedrock(
 
 
 class MockRequestCall(Protocol):
-    request: httpx.Request
+    request: httpx2.Request
 
 
 class AwsConfigProfile(TypedDict):
@@ -65,13 +70,12 @@ def mock_aws_config(
         yield
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.respx()
 def test_messages_retries(respx_mock: MockRouter) -> None:
     respx_mock.post(re.compile(r"https://bedrock-runtime\.us-east-1\.amazonaws\.com/model/.*/invoke")).mock(
         side_effect=[
-            httpx.Response(500, json={"error": "server error"}, headers={"retry-after-ms": "10"}),
-            httpx.Response(200, json={"foo": "bar"}),
+            httpx2.Response(500, json={"error": "server error"}, headers={"retry-after-ms": "10"}),
+            httpx2.Response(200, json={"foo": "bar"}),
         ]
     )
 
@@ -100,14 +104,13 @@ def test_messages_retries(respx_mock: MockRouter) -> None:
     )
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.respx()
 @pytest.mark.asyncio()
 async def test_messages_retries_async(respx_mock: MockRouter) -> None:
     respx_mock.post(re.compile(r"https://bedrock-runtime\.us-east-1\.amazonaws\.com/model/.*/invoke")).mock(
         side_effect=[
-            httpx.Response(500, json={"error": "server error"}, headers={"retry-after-ms": "10"}),
-            httpx.Response(200, json={"foo": "bar"}),
+            httpx2.Response(500, json={"error": "server error"}, headers={"retry-after-ms": "10"}),
+            httpx2.Response(200, json={"foo": "bar"}),
         ]
     )
 
@@ -136,13 +139,12 @@ async def test_messages_retries_async(respx_mock: MockRouter) -> None:
     )
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.respx()
 def test_application_inference_profile(respx_mock: MockRouter) -> None:
     respx_mock.post(re.compile(r"https://bedrock-runtime\.us-east-1\.amazonaws\.com/model/.*/invoke")).mock(
         side_effect=[
-            httpx.Response(500, json={"error": "server error"}, headers={"retry-after-ms": "10"}),
-            httpx.Response(200, json={"foo": "bar"}),
+            httpx2.Response(500, json={"error": "server error"}, headers={"retry-after-ms": "10"}),
+            httpx2.Response(200, json={"foo": "bar"}),
         ]
     )
 
@@ -180,11 +182,10 @@ async_api_key_client = AsyncAnthropicBedrock(
 )
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.respx()
 def test_api_key_auth(respx_mock: MockRouter) -> None:
     respx_mock.post(re.compile(r"https://bedrock-runtime\.us-east-1\.amazonaws\.com/model/.*/invoke")).mock(
-        return_value=httpx.Response(200, json={"foo": "bar"}),
+        return_value=httpx2.Response(200, json={"foo": "bar"}),
     )
 
     sync_api_key_client.messages.create(
@@ -198,12 +199,11 @@ def test_api_key_auth(respx_mock: MockRouter) -> None:
     assert calls[0].request.headers["Authorization"] == "Bearer test-api-key"
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.respx()
 @pytest.mark.asyncio()
 async def test_api_key_auth_async(respx_mock: MockRouter) -> None:
     respx_mock.post(re.compile(r"https://bedrock-runtime\.us-east-1\.amazonaws\.com/model/.*/invoke")).mock(
-        return_value=httpx.Response(200, json={"foo": "bar"}),
+        return_value=httpx2.Response(200, json={"foo": "bar"}),
     )
 
     await async_api_key_client.messages.create(
@@ -281,6 +281,39 @@ def test_region_infer_from_specified_profile(
     assert client.aws_region == next(profile for profile in profiles if profile["name"] == aws_profile)["region"]
 
 
+@pytest.mark.parametrize(
+    "profiles",
+    [[{"name": "default", "region": "us-east-2"}, {"name": "custom", "region": "us-west-1"}]],
+)
+def test_region_infer_from_aws_profile_argument(
+    mock_aws_config: None,  # noqa: ARG001
+    monkeypatch: t.Any,
+) -> None:
+    monkeypatch.delenv("AWS_PROFILE", raising=False)
+    client = AnthropicBedrock(aws_profile="custom")
+
+    assert client.aws_region == "us-west-1"
+
+
+@pytest.mark.parametrize("profiles", [[]])
+def test_region_is_required(
+    mock_aws_config: None,  # noqa: ARG001
+    monkeypatch: t.Any,
+) -> None:
+    for name in ("AWS_REGION", "AWS_DEFAULT_REGION", "AWS_PROFILE"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("AWS_EC2_METADATA_DISABLED", "true")
+
+    with pytest.raises(ValueError, match="No AWS region was provided"):
+        AnthropicBedrock()
+
+    with pytest.raises(ValueError, match="No AWS region was provided"):
+        AsyncAnthropicBedrock(api_key="test-api-key")
+
+    # an explicit region always wins and skips inference entirely
+    assert AnthropicBedrock(aws_region="eu-west-1").aws_region == "eu-west-1"
+
+
 def test_chunk_bytes_to_sse_typed_event() -> None:
     raw = (
         b'{"type":"message_start","message":{"id":"msg_123","type":"message","role":"assistant",'
@@ -310,6 +343,101 @@ def test_chunk_bytes_to_sse_legacy_completion_with_metrics() -> None:
     assert sse.event == "completion"
 
 
+def test_chunk_bytes_to_sse_drops_chunk_without_type_or_completion() -> None:
+    raw = b'{"amazon-bedrock-invocationMetrics":{"inputTokenCount":1,"outputTokenCount":1}}'
+    assert _chunk_bytes_to_sse(raw) is None
+
+
+def _eventstream_chunk_frame(payload: t.Mapping[str, object]) -> bytes:
+    """Encode `payload` as one `chunk` event in AWS eventstream binary framing."""
+    headers = b""
+    for name, value in ((":message-type", "event"), (":event-type", "chunk"), (":content-type", "application/json")):
+        headers += bytes([len(name)]) + name.encode() + b"\x07" + struct.pack(">H", len(value)) + value.encode()
+    body = json.dumps({"bytes": base64.b64encode(json.dumps(payload).encode()).decode()}).encode()
+    prelude = struct.pack(">II", 12 + len(headers) + len(body) + 4, len(headers))
+    prelude += struct.pack(">I", binascii.crc32(prelude) & 0xFFFFFFFF)
+    message = prelude + headers + body
+    return message + struct.pack(">I", binascii.crc32(message) & 0xFFFFFFFF)
+
+
+_INVOCATION_METRICS = {"inputTokenCount": 5, "outputTokenCount": 3, "invocationLatency": 500, "firstByteLatency": 100}
+_TYPELESS_CHUNK_STREAM: t.List[t.Dict[str, object]] = [
+    {
+        "type": "message_start",
+        "message": {
+            "id": "msg_1",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "model": "claude",
+            "stop_reason": None,
+            "stop_sequence": None,
+            "usage": {"input_tokens": 5, "output_tokens": 1},
+        },
+    },
+    # no `type` and no `completion`: there is no event name to route this by
+    {"amazon-bedrock-invocationMetrics": _INVOCATION_METRICS},
+    {"type": "message_stop", "amazon-bedrock-invocationMetrics": _INVOCATION_METRICS},
+]
+_STREAM_WITH_TYPELESS_CHUNK = b"".join(_eventstream_chunk_frame(payload) for payload in _TYPELESS_CHUNK_STREAM)
+_STREAM_URL = re.compile(r"https://bedrock-runtime\.us-east-1\.amazonaws\.com/model/.*/invoke-with-response-stream")
+
+
+@pytest.mark.respx()
+def test_stream_skips_typeless_chunk(respx_mock: MockRouter) -> None:
+    respx_mock.post(_STREAM_URL).mock(
+        return_value=httpx2.Response(
+            200, content=_STREAM_WITH_TYPELESS_CHUNK, headers={"content-type": "application/vnd.amazon.eventstream"}
+        )
+    )
+    stream = sync_client.messages.create(
+        max_tokens=8, messages=[{"role": "user", "content": "hi"}], model="anthropic.claude-x", stream=True
+    )
+    events = list(stream)
+
+    assert [e.type for e in events] == ["message_start", "message_stop"]
+    assert events[0].type == "message_start" and events[0].message.id == "msg_1"
+    assert events[1].to_dict()["amazon-bedrock-invocationMetrics"] == _INVOCATION_METRICS
+
+
+@pytest.mark.respx()
+@pytest.mark.asyncio()
+async def test_stream_skips_typeless_chunk_async(respx_mock: MockRouter) -> None:
+    respx_mock.post(_STREAM_URL).mock(
+        return_value=httpx2.Response(
+            200, content=_STREAM_WITH_TYPELESS_CHUNK, headers={"content-type": "application/vnd.amazon.eventstream"}
+        )
+    )
+    stream = await async_client.messages.create(
+        max_tokens=8, messages=[{"role": "user", "content": "hi"}], model="anthropic.claude-x", stream=True
+    )
+    events = [e async for e in stream]
+
+    assert [e.type for e in events] == ["message_start", "message_stop"]
+    assert events[0].type == "message_start" and events[0].message.id == "msg_1"
+    assert events[1].to_dict()["amazon-bedrock-invocationMetrics"] == _INVOCATION_METRICS
+
+
+@pytest.mark.respx()
+@pytest.mark.asyncio()
+@pytest.mark.parametrize("sync", [True, False], ids=["sync", "async"])
+async def test_sigv4_signs_binary_body(sync: bool, respx_mock: MockRouter) -> None:
+    respx_mock.post("https://bedrock-runtime.us-east-1.amazonaws.com/foo").mock(
+        return_value=httpx2.Response(200, json={})
+    )
+    content = b"\x89PNG\r\n\x1a\n\x00\xff\xfe"
+
+    if sync:
+        sync_client.post("/foo", content=content, cast_to=httpx2.Response)
+    else:
+        await async_client.post("/foo", content=content, cast_to=httpx2.Response)
+
+    calls = cast("list[MockRequestCall]", respx_mock.calls)
+    assert len(calls) == 1
+    assert calls[0].request.content == content
+    assert calls[0].request.headers["Authorization"].startswith("AWS4-HMAC-SHA256 ")
+
+
 def test_copy_x_stainless_helper_header_appends() -> None:
     # `x-stainless-helper` accumulates across copies instead of being clobbered
     client = sync_client.with_options(default_headers={"x-stainless-helper": "parent"})
@@ -324,8 +452,8 @@ def test_async_copy_x_stainless_helper_header_appends() -> None:
     assert copied.default_headers["x-stainless-helper"] == "parent, child"
 
 
-def _bedrock_message(content: t.List[t.Dict[str, t.Any]], stop_reason: str) -> httpx.Response:
-    return httpx.Response(
+def _bedrock_message(content: t.List[t.Dict[str, t.Any]], stop_reason: str) -> httpx2.Response:
+    return httpx2.Response(
         200,
         json={
             "id": "msg_01",
@@ -340,7 +468,7 @@ def _bedrock_message(content: t.List[t.Dict[str, t.Any]], stop_reason: str) -> h
     )
 
 
-def _tool_runner_responses() -> t.List[httpx.Response]:
+def _tool_runner_responses() -> t.List[httpx2.Response]:
     return [
         _bedrock_message(
             [{"type": "tool_use", "id": "toolu_01", "name": "get_weather", "input": {"city": "Paris"}}],
@@ -370,7 +498,6 @@ def _assert_tool_runner_calls(calls: t.List[MockRequestCall]) -> None:
 
 
 @pytest.mark.skipif(PYDANTIC_V1, reason="tool functions are only supported with pydantic v2")
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.respx()
 def test_beta_tool_runner_routes_through_invoke(respx_mock: MockRouter) -> None:
     @beta_tool
@@ -398,7 +525,6 @@ def test_beta_tool_runner_routes_through_invoke(respx_mock: MockRouter) -> None:
 
 
 @pytest.mark.skipif(PYDANTIC_V1, reason="tool functions are only supported with pydantic v2")
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.respx()
 @pytest.mark.asyncio()
 async def test_beta_tool_runner_routes_through_invoke_async(respx_mock: MockRouter) -> None:
@@ -426,7 +552,6 @@ async def test_beta_tool_runner_routes_through_invoke_async(respx_mock: MockRout
     _assert_tool_runner_calls(cast("list[MockRequestCall]", respx_mock.calls))
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_beta_messages_helpers_are_bound() -> None:
     for client in (sync_client, async_client):
         for name in ("create", "parse", "stream", "tool_runner"):
@@ -443,9 +568,47 @@ async def test_sigv4_signing_runs_off_event_loop_async(monkeypatch: pytest.Monke
 
     monkeypatch.setattr("anthropic.lib.bedrock._auth.get_auth_headers", fake_get_auth_headers)
 
-    request = httpx.Request("POST", "https://bedrock-runtime.us-east-1.amazonaws.com/model/x/invoke", content=b"{}")
+    request = httpx2.Request("POST", "https://bedrock-runtime.us-east-1.amazonaws.com/model/x/invoke", content=b"{}")
     await async_client._prepare_request(request)
 
     assert len(signing_threads) == 1
     assert signing_threads[0] != threading.get_ident()
     assert request.headers["Authorization"] == "AWS4-HMAC-SHA256 stub"
+
+
+def test_prepare_options_lifts_anthropic_beta_header_case_insensitively() -> None:
+    # Bedrock takes betas in the request body
+    options = _prepare_options(
+        FinalRequestOptions(
+            method="post",
+            url="/v1/messages",
+            json_data={"model": "anthropic.claude-sonnet-4-5"},
+            headers={"Anthropic-Beta": "context-1m-2025-08-07,other-beta"},
+        )
+    )
+
+    assert cast("dict[str, object]", options.json_data).get("anthropic_beta") == [
+        "context-1m-2025-08-07",
+        "other-beta",
+    ]
+
+
+@pytest.mark.respx()
+def test_betas_param_and_extra_headers_case_variant(respx_mock: MockRouter) -> None:
+    # `extra_headers` overrides the header written by `betas`, on the wire and in the body
+    respx_mock.post(re.compile(r"https://bedrock-runtime\.us-east-1\.amazonaws\.com/model/.*/invoke")).mock(
+        return_value=httpx2.Response(200, json={"foo": "bar"})
+    )
+
+    sync_api_key_client.beta.messages.create(
+        max_tokens=1024,
+        messages=[{"role": "user", "content": "Say hello there!"}],
+        model="anthropic.claude-3-5-sonnet-20241022-v2:0",
+        betas=["from-betas-param"],
+        extra_headers={"Anthropic-Beta": "from-extra-headers"},
+    )
+
+    calls = cast("list[MockRequestCall]", respx_mock.calls)
+    assert len(calls) == 1
+    assert calls[0].request.headers.get_list("anthropic-beta") == ["from-extra-headers"]
+    assert json.loads(calls[0].request.content)["anthropic_beta"] == ["from-extra-headers"]

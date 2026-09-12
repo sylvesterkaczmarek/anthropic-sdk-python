@@ -1,19 +1,21 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 from typing import List, Union
 from datetime import datetime
 from itertools import chain
 
-import httpx
+import httpx2
 
-from ... import _legacy_response
 from ..._types import Body, Omit, Query, Headers, NotGiven, omit, not_given
 from ..._utils import is_given, path_template, maybe_transform, strip_not_given
 from ..._compat import cached_property
 from ..._resource import SyncAPIResource, AsyncAPIResource
-from ..._response import to_streamed_response_wrapper, async_to_streamed_response_wrapper
+from ..._response import (
+    to_raw_response_wrapper,
+    to_streamed_response_wrapper,
+    async_to_raw_response_wrapper,
+    async_to_streamed_response_wrapper,
+)
 from ...pagination import SyncPageCursor, AsyncPageCursor
 from ...types.beta import BetaManagedAgentsTriggerType, deployment_run_list_params
 from ..._base_client import AsyncPaginator, make_request_options
@@ -49,12 +51,13 @@ class DeploymentRuns(SyncAPIResource):
         deployment_run_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsDeploymentRun:
         """
         Get Deployment Run
@@ -77,7 +80,8 @@ class DeploymentRuns(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -104,12 +108,13 @@ class DeploymentRuns(SyncAPIResource):
         page: str | Omit = omit,
         trigger_type: BetaManagedAgentsTriggerType | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> SyncPageCursor[BetaManagedAgentsDeploymentRun]:
         """
         List Deployment Runs
@@ -124,16 +129,16 @@ class DeploymentRuns(SyncAPIResource):
           created_at_lte: Return runs created at or before this time (inclusive).
 
           deployment_id: Filter to a specific deployment. Omit to list across all deployments in the
-              workspace. Filtering by a non-existent deployment_id returns 200 with empty
+              workspace. Filtering by a non-existent `deployment_id` returns 200 with empty
               data.
 
-          has_error: Filter: true for runs with non-null error, false for runs with non-null
-              session_id. Omit for all.
+          has_error: Filter: true for runs with non-null `error`, false for runs with non-null
+              `session_id`. Omit for all.
 
           limit: Maximum results per page. Default 20, maximum 1000.
 
-          page: Opaque pagination cursor. Pass next_page from the previous response. Invalid or
-              expired cursors return 400.
+          page: Opaque pagination cursor. Pass `next_page` from the previous response. Invalid
+              or expired cursors return 400.
 
           trigger_type: Filter runs by what triggered them. Omit to return all runs.
 
@@ -152,7 +157,8 @@ class DeploymentRuns(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -210,12 +216,13 @@ class AsyncDeploymentRuns(AsyncAPIResource):
         deployment_run_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsDeploymentRun:
         """
         Get Deployment Run
@@ -238,7 +245,8 @@ class AsyncDeploymentRuns(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -265,12 +273,13 @@ class AsyncDeploymentRuns(AsyncAPIResource):
         page: str | Omit = omit,
         trigger_type: BetaManagedAgentsTriggerType | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> AsyncPaginator[BetaManagedAgentsDeploymentRun, AsyncPageCursor[BetaManagedAgentsDeploymentRun]]:
         """
         List Deployment Runs
@@ -285,16 +294,16 @@ class AsyncDeploymentRuns(AsyncAPIResource):
           created_at_lte: Return runs created at or before this time (inclusive).
 
           deployment_id: Filter to a specific deployment. Omit to list across all deployments in the
-              workspace. Filtering by a non-existent deployment_id returns 200 with empty
+              workspace. Filtering by a non-existent `deployment_id` returns 200 with empty
               data.
 
-          has_error: Filter: true for runs with non-null error, false for runs with non-null
-              session_id. Omit for all.
+          has_error: Filter: true for runs with non-null `error`, false for runs with non-null
+              `session_id`. Omit for all.
 
           limit: Maximum results per page. Default 20, maximum 1000.
 
-          page: Opaque pagination cursor. Pass next_page from the previous response. Invalid or
-              expired cursors return 400.
+          page: Opaque pagination cursor. Pass `next_page` from the previous response. Invalid
+              or expired cursors return 400.
 
           trigger_type: Filter runs by what triggered them. Omit to return all runs.
 
@@ -313,7 +322,8 @@ class AsyncDeploymentRuns(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -350,10 +360,10 @@ class DeploymentRunsWithRawResponse:
     def __init__(self, deployment_runs: DeploymentRuns) -> None:
         self._deployment_runs = deployment_runs
 
-        self.retrieve = _legacy_response.to_raw_response_wrapper(
+        self.retrieve = to_raw_response_wrapper(
             deployment_runs.retrieve,
         )
-        self.list = _legacy_response.to_raw_response_wrapper(
+        self.list = to_raw_response_wrapper(
             deployment_runs.list,
         )
 
@@ -362,10 +372,10 @@ class AsyncDeploymentRunsWithRawResponse:
     def __init__(self, deployment_runs: AsyncDeploymentRuns) -> None:
         self._deployment_runs = deployment_runs
 
-        self.retrieve = _legacy_response.async_to_raw_response_wrapper(
+        self.retrieve = async_to_raw_response_wrapper(
             deployment_runs.retrieve,
         )
-        self.list = _legacy_response.async_to_raw_response_wrapper(
+        self.list = async_to_raw_response_wrapper(
             deployment_runs.list,
         )
 

@@ -50,7 +50,6 @@ from ._types import (
     HttpxRequestFiles,
 )
 from ._utils import (
-    PropertyInfo,
     is_list,
     is_given,
     json_safe,
@@ -134,6 +133,12 @@ class BaseModel(pydantic.BaseModel):
         Note: unlike other properties that use an `_` prefix, this property
         *is* public. Unless documented otherwise, all other `_` prefix properties,
         methods and modules are *private*.
+        """
+
+        _workspace_id: Optional[str] = None
+        """The ID of the workspace the request was made in, returned via the `anthropic-workspace-id` header.
+        Like `_request_id`, this will **only** be set for the top-level response object and,
+        despite the `_` prefix, *is* public.
         """
 
     def to_dict(
@@ -695,6 +700,27 @@ def construct_type(*, value: object, type_: object, metadata: Optional[List[Any]
     return value
 
 
+class UnionDiscriminator:
+    """Annotated metadata naming the field that tells the variants of a union apart, e.g.
+
+    ```py
+    Pet: TypeAlias = Annotated[Union[Cat, Dog], UnionDiscriminator("type")]
+    ```
+
+    When constructing a `Pet` from a response, the `type` value picks which variant to build.
+    """
+
+    field_name: str
+    """The discriminator field's attribute name on the variant classes (not its API alias), e.g. `type`"""
+
+    def __init__(self, field_name: str) -> None:
+        self.field_name = field_name
+
+    @override
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.field_name!r})"
+
+
 @runtime_checkable
 class CachedDiscriminatorType(Protocol):
     __discriminator__: DiscriminatorDetails
@@ -752,8 +778,8 @@ def _build_discriminated_union_meta(*, union: type, meta_annotations: tuple[Any,
     discriminator_field_name: str | None = None
 
     for annotation in meta_annotations:
-        if isinstance(annotation, PropertyInfo) and annotation.discriminator is not None:
-            discriminator_field_name = annotation.discriminator
+        if isinstance(annotation, UnionDiscriminator):
+            discriminator_field_name = annotation.field_name
             break
 
     if not discriminator_field_name:
@@ -841,19 +867,21 @@ def set_pydantic_config(typ: Any, config: pydantic.ConfigDict) -> None:
     setattr(typ, "__pydantic_config__", config)  # noqa: B010
 
 
-def add_request_id(obj: BaseModel, request_id: str | None) -> None:
+def add_response_ids(obj: BaseModel, *, request_id: str | None, workspace_id: str | None) -> None:
     obj._request_id = request_id
+    obj._workspace_id = workspace_id
 
-    # in Pydantic v1, using setattr like we do above causes the attribute
+    # in Pydantic v1, using setattr like we do above causes the attributes
     # to be included when serializing the model which we don't want in this
-    # case so we need to explicitly exclude it
+    # case so we need to explicitly exclude them
     if PYDANTIC_V1:
+        private_fields = {"_request_id", "_workspace_id", "__exclude_fields__"}
         try:
             exclude_fields = obj.__exclude_fields__  # type: ignore
         except AttributeError:
-            cast(Any, obj).__exclude_fields__ = {"_request_id", "__exclude_fields__"}
+            cast(Any, obj).__exclude_fields__ = private_fields
         else:
-            cast(Any, obj).__exclude_fields__ = {*(exclude_fields or {}), "_request_id", "__exclude_fields__"}
+            cast(Any, obj).__exclude_fields__ = {*(exclude_fields or {}), *private_fields}
 
 
 # our use of subclassing here causes weirdness for type checkers,

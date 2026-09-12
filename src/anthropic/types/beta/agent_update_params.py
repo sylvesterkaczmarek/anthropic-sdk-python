@@ -1,11 +1,8 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 from typing import Dict, List, Union, Iterable, Optional
-from typing_extensions import Annotated, TypeAlias, TypedDict
+from typing_extensions import TypeAlias, TypedDict
 
-from ..._utils import PropertyInfo
 from ..anthropic_beta_param import AnthropicBetaParam
 from .beta_managed_agents_model_param import BetaManagedAgentsModelParam
 from .beta_managed_agents_skill_params import BetaManagedAgentsSkillParams
@@ -45,7 +42,7 @@ class AgentUpdateParams(TypedDict, total=False):
 
     Accepts the
     [model string](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison),
-    e.g. `claude-opus-4-6`, or a `model_config` object for additional configuration
+    e.g. `claude-opus-5`, or a `model_config` object for additional configuration
     control. Omit to preserve. Cannot be cleared.
     """
 
@@ -79,8 +76,10 @@ class AgentUpdateParams(TypedDict, total=False):
     current version; omit to apply the update unconditionally.
     """
 
-    betas: Annotated[List[AnthropicBetaParam], PropertyInfo(alias="anthropic-beta")]
+    betas: List[AnthropicBetaParam]
     """Optional header to specify the beta version(s) you want to use."""
+
+    workspace_id: str
 
 
 Model: TypeAlias = Union[BetaManagedAgentsModelParam, BetaManagedAgentsModelConfigParams]

@@ -4,7 +4,7 @@ import pathlib
 
 import pytest
 
-from anthropic import AnthropicError
+from anthropic import CredentialsError
 from anthropic.lib.credentials import _chain
 from anthropic.lib.credentials._constants import (
     ENV_IDENTITY_TOKEN,
@@ -38,7 +38,7 @@ def test_literal_identity_token_cleared_after_discovery_fails_before_exchange(
 
     monkeypatch.setenv(ENV_IDENTITY_TOKEN, "")
     try:
-        with pytest.raises(AnthropicError, match="not set or is empty"):
+        with pytest.raises(CredentialsError, match="not set or is empty"):
             result.provider()
     finally:
         close = getattr(result.provider, "close", None)

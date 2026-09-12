@@ -1,12 +1,9 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 import os
 from typing import Any, cast
 
 import pytest
-import pydantic
 
 from anthropic import Anthropic, AsyncAnthropic
 from tests.utils import assert_matches_type
@@ -31,7 +28,7 @@ class TestMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
         )
         assert_matches_type(BetaMessage, message, path=["response"])
 
@@ -43,9 +40,11 @@ class TestMessages:
                 {
                     "content": "Hello, world",
                     "role": "user",
+                    "clear_at": "next_user_message",
+                    "output_config": {"effort": "low"},
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
             cache_control={
                 "type": "ephemeral",
                 "ttl": "5m",
@@ -134,9 +133,9 @@ class TestMessages:
                     ],
                 }
             ],
-            temperature=1,
             thinking={
                 "type": "adaptive",
+                "block_binding": {"prefix_mismatch_behavior": "error"},
                 "display": "summarized",
             },
             tool_choice={
@@ -167,10 +166,9 @@ class TestMessages:
                     "type": "custom",
                 }
             ],
-            top_k=5,
-            top_p=0.7,
             betas=["message-batches-2024-09-24"],
             user_profile_id="anthropic-user-profile-id",
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaMessage, message, path=["response"])
 
@@ -184,7 +182,7 @@ class TestMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
         )
 
         assert response.is_closed is True
@@ -202,7 +200,7 @@ class TestMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
         ) as response:
             assert not response.is_closed
             assert response.http_request.headers.get("X-Stainless-Lang") == "python"
@@ -222,7 +220,7 @@ class TestMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
             stream=True,
         )
         message_stream.response.close()
@@ -235,9 +233,11 @@ class TestMessages:
                 {
                     "content": "Hello, world",
                     "role": "user",
+                    "clear_at": "next_user_message",
+                    "output_config": {"effort": "low"},
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
             stream=True,
             cache_control={
                 "type": "ephemeral",
@@ -326,9 +326,9 @@ class TestMessages:
                     ],
                 }
             ],
-            temperature=1,
             thinking={
                 "type": "adaptive",
+                "block_binding": {"prefix_mismatch_behavior": "error"},
                 "display": "summarized",
             },
             tool_choice={
@@ -359,10 +359,9 @@ class TestMessages:
                     "type": "custom",
                 }
             ],
-            top_k=5,
-            top_p=0.7,
             betas=["message-batches-2024-09-24"],
             user_profile_id="anthropic-user-profile-id",
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         message_stream.response.close()
 
@@ -376,7 +375,7 @@ class TestMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
             stream=True,
         )
 
@@ -394,7 +393,7 @@ class TestMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
             stream=True,
         ) as response:
             assert not response.is_closed
@@ -414,7 +413,7 @@ class TestMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
         )
         assert_matches_type(BetaMessageTokensCount, message, path=["response"])
 
@@ -425,9 +424,11 @@ class TestMessages:
                 {
                     "content": "Hello, world",
                     "role": "user",
+                    "clear_at": "next_user_message",
+                    "output_config": {"effort": "low"},
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
             cache_control={
                 "type": "ephemeral",
                 "ttl": "5m",
@@ -500,6 +501,7 @@ class TestMessages:
             ],
             thinking={
                 "type": "adaptive",
+                "block_binding": {"prefix_mismatch_behavior": "error"},
                 "display": "summarized",
             },
             tool_choice={
@@ -531,6 +533,7 @@ class TestMessages:
                 }
             ],
             betas=["string"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaMessageTokensCount, message, path=["response"])
 
@@ -543,7 +546,7 @@ class TestMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
         )
 
         assert response.is_closed is True
@@ -560,7 +563,7 @@ class TestMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
         ) as response:
             assert not response.is_closed
             assert response.http_request.headers.get("X-Stainless-Lang") == "python"
@@ -569,23 +572,6 @@ class TestMessages:
             assert_matches_type(BetaMessageTokensCount, message, path=["response"])
 
         assert cast(Any, response.is_closed) is True
-
-    @parametrize
-    def test_pydantic_error_in_create(self, client: Anthropic) -> None:
-        class MyModel(pydantic.BaseModel):
-            name: str
-            age: int
-
-        with pytest.raises(TypeError) as exc_info:
-            client.beta.messages.create(
-                max_tokens=1024,
-                messages=[{"role": "user", "content": "Test"}],
-                model="claude-sonnet-4-5-20250929",
-                output_format=MyModel,  # type: ignore
-            )
-
-        error_message = str(exc_info.value)
-        assert "parse()" in error_message
 
 
 class TestAsyncMessages:
@@ -603,7 +589,7 @@ class TestAsyncMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
         )
         assert_matches_type(BetaMessage, message, path=["response"])
 
@@ -615,9 +601,11 @@ class TestAsyncMessages:
                 {
                     "content": "Hello, world",
                     "role": "user",
+                    "clear_at": "next_user_message",
+                    "output_config": {"effort": "low"},
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
             cache_control={
                 "type": "ephemeral",
                 "ttl": "5m",
@@ -706,9 +694,9 @@ class TestAsyncMessages:
                     ],
                 }
             ],
-            temperature=1,
             thinking={
                 "type": "adaptive",
+                "block_binding": {"prefix_mismatch_behavior": "error"},
                 "display": "summarized",
             },
             tool_choice={
@@ -739,10 +727,9 @@ class TestAsyncMessages:
                     "type": "custom",
                 }
             ],
-            top_k=5,
-            top_p=0.7,
             betas=["message-batches-2024-09-24"],
             user_profile_id="anthropic-user-profile-id",
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaMessage, message, path=["response"])
 
@@ -756,12 +743,12 @@ class TestAsyncMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
         )
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        message = response.parse()
+        message = await response.parse()
         assert_matches_type(BetaMessage, message, path=["response"])
 
     @parametrize
@@ -774,7 +761,7 @@ class TestAsyncMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
         ) as response:
             assert not response.is_closed
             assert response.http_request.headers.get("X-Stainless-Lang") == "python"
@@ -794,7 +781,7 @@ class TestAsyncMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
             stream=True,
         )
         await message_stream.response.aclose()
@@ -807,9 +794,11 @@ class TestAsyncMessages:
                 {
                     "content": "Hello, world",
                     "role": "user",
+                    "clear_at": "next_user_message",
+                    "output_config": {"effort": "low"},
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
             stream=True,
             cache_control={
                 "type": "ephemeral",
@@ -898,9 +887,9 @@ class TestAsyncMessages:
                     ],
                 }
             ],
-            temperature=1,
             thinking={
                 "type": "adaptive",
+                "block_binding": {"prefix_mismatch_behavior": "error"},
                 "display": "summarized",
             },
             tool_choice={
@@ -931,10 +920,9 @@ class TestAsyncMessages:
                     "type": "custom",
                 }
             ],
-            top_k=5,
-            top_p=0.7,
             betas=["message-batches-2024-09-24"],
             user_profile_id="anthropic-user-profile-id",
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         await message_stream.response.aclose()
 
@@ -948,12 +936,12 @@ class TestAsyncMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
             stream=True,
         )
 
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        stream = response.parse()
+        stream = await response.parse()
         await stream.close()
 
     @parametrize
@@ -966,7 +954,7 @@ class TestAsyncMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
             stream=True,
         ) as response:
             assert not response.is_closed
@@ -986,7 +974,7 @@ class TestAsyncMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
         )
         assert_matches_type(BetaMessageTokensCount, message, path=["response"])
 
@@ -997,9 +985,11 @@ class TestAsyncMessages:
                 {
                     "content": "Hello, world",
                     "role": "user",
+                    "clear_at": "next_user_message",
+                    "output_config": {"effort": "low"},
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
             cache_control={
                 "type": "ephemeral",
                 "ttl": "5m",
@@ -1072,6 +1062,7 @@ class TestAsyncMessages:
             ],
             thinking={
                 "type": "adaptive",
+                "block_binding": {"prefix_mismatch_behavior": "error"},
                 "display": "summarized",
             },
             tool_choice={
@@ -1104,6 +1095,7 @@ class TestAsyncMessages:
             ],
             betas=["string"],
             user_profile_id="anthropic-user-profile-id",
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaMessageTokensCount, message, path=["response"])
 
@@ -1116,12 +1108,12 @@ class TestAsyncMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
         )
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        message = response.parse()
+        message = await response.parse()
         assert_matches_type(BetaMessageTokensCount, message, path=["response"])
 
     @parametrize
@@ -1133,7 +1125,7 @@ class TestAsyncMessages:
                     "role": "user",
                 }
             ],
-            model="claude-opus-4-6",
+            model="claude-opus-5",
         ) as response:
             assert not response.is_closed
             assert response.http_request.headers.get("X-Stainless-Lang") == "python"
@@ -1142,20 +1134,3 @@ class TestAsyncMessages:
             assert_matches_type(BetaMessageTokensCount, message, path=["response"])
 
         assert cast(Any, response.is_closed) is True
-
-    @parametrize
-    async def test_pydantic_error_in_create(self, async_client: AsyncAnthropic) -> None:
-        class MyModel(pydantic.BaseModel):
-            name: str
-            age: int
-
-        with pytest.raises(TypeError) as exc_info:
-            await async_client.beta.messages.create(
-                max_tokens=1024,
-                messages=[{"role": "user", "content": "Test"}],
-                model="claude-sonnet-4-5-20250929",
-                output_format=MyModel,  # type: ignore
-            )
-
-        error_message = str(exc_info.value)
-        assert "parse()" in error_message

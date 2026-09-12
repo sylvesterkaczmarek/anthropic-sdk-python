@@ -1,5 +1,3 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 from typing import Dict, List, Union, Iterable, Optional
@@ -7,9 +5,8 @@ from datetime import datetime
 from itertools import chain
 from typing_extensions import Literal
 
-import httpx
+import httpx2
 
-from .... import _legacy_response
 from .events import (
     Events,
     AsyncEvents,
@@ -30,7 +27,12 @@ from .resources import (
 )
 from ...._compat import cached_property
 from ...._resource import SyncAPIResource, AsyncAPIResource
-from ...._response import to_streamed_response_wrapper, async_to_streamed_response_wrapper
+from ...._response import (
+    to_raw_response_wrapper,
+    to_streamed_response_wrapper,
+    async_to_raw_response_wrapper,
+    async_to_streamed_response_wrapper,
+)
 from ....pagination import SyncBidirectionalPageCursor, AsyncBidirectionalPageCursor
 from ....types.beta import (
     session_list_params,
@@ -99,12 +101,13 @@ class Sessions(SyncAPIResource):
         title: Optional[str] | Omit = omit,
         vault_ids: SequenceNotStr[str] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSession:
         """Create Session
 
@@ -146,7 +149,8 @@ class Sessions(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -178,12 +182,13 @@ class Sessions(SyncAPIResource):
         session_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSession:
         """
         Get Session
@@ -206,7 +211,8 @@ class Sessions(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -230,12 +236,13 @@ class Sessions(SyncAPIResource):
         title: Optional[str] | Omit = omit,
         vault_ids: SequenceNotStr[str] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSession:
         """Update Session
 
@@ -274,7 +281,8 @@ class Sessions(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -315,12 +323,13 @@ class Sessions(SyncAPIResource):
         page: str | Omit = omit,
         statuses: List[Literal["rescheduling", "running", "idle", "terminated"]] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> SyncBidirectionalPageCursor[BetaManagedAgentsSession]:
         """
         List Sessions
@@ -328,7 +337,7 @@ class Sessions(SyncAPIResource):
         Args:
           agent_id: Filter sessions created with this agent ID.
 
-          agent_version: Filter by agent version. Only applies when agent_id is also set.
+          agent_version: Filter by agent version. Only applies when `agent_id` is also set.
 
           created_at_gt: Return sessions created after this time (exclusive).
 
@@ -344,10 +353,10 @@ class Sessions(SyncAPIResource):
 
           limit: Maximum number of results to return.
 
-          memory_store_id: Filter sessions whose resources contain a memory_store with this memory store
+          memory_store_id: Filter sessions whose resources contain a `memory_store` with this memory store
               ID.
 
-          order: Sort direction for results, ordered by created_at. Defaults to desc (newest
+          order: Sort direction for results, ordered by `created_at`. Defaults to `desc` (newest
               first).
 
           page: Opaque pagination cursor from a previous response.
@@ -370,7 +379,8 @@ class Sessions(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -411,12 +421,13 @@ class Sessions(SyncAPIResource):
         session_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsDeletedSession:
         """
         Delete Session
@@ -439,7 +450,8 @@ class Sessions(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -458,12 +470,13 @@ class Sessions(SyncAPIResource):
         session_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSession:
         """
         Archive Session
@@ -486,7 +499,8 @@ class Sessions(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -545,12 +559,13 @@ class AsyncSessions(AsyncAPIResource):
         title: Optional[str] | Omit = omit,
         vault_ids: SequenceNotStr[str] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSession:
         """Create Session
 
@@ -592,7 +607,8 @@ class AsyncSessions(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -624,12 +640,13 @@ class AsyncSessions(AsyncAPIResource):
         session_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSession:
         """
         Get Session
@@ -652,7 +669,8 @@ class AsyncSessions(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -676,12 +694,13 @@ class AsyncSessions(AsyncAPIResource):
         title: Optional[str] | Omit = omit,
         vault_ids: SequenceNotStr[str] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSession:
         """Update Session
 
@@ -720,7 +739,8 @@ class AsyncSessions(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -761,12 +781,13 @@ class AsyncSessions(AsyncAPIResource):
         page: str | Omit = omit,
         statuses: List[Literal["rescheduling", "running", "idle", "terminated"]] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> AsyncPaginator[BetaManagedAgentsSession, AsyncBidirectionalPageCursor[BetaManagedAgentsSession]]:
         """
         List Sessions
@@ -774,7 +795,7 @@ class AsyncSessions(AsyncAPIResource):
         Args:
           agent_id: Filter sessions created with this agent ID.
 
-          agent_version: Filter by agent version. Only applies when agent_id is also set.
+          agent_version: Filter by agent version. Only applies when `agent_id` is also set.
 
           created_at_gt: Return sessions created after this time (exclusive).
 
@@ -790,10 +811,10 @@ class AsyncSessions(AsyncAPIResource):
 
           limit: Maximum number of results to return.
 
-          memory_store_id: Filter sessions whose resources contain a memory_store with this memory store
+          memory_store_id: Filter sessions whose resources contain a `memory_store` with this memory store
               ID.
 
-          order: Sort direction for results, ordered by created_at. Defaults to desc (newest
+          order: Sort direction for results, ordered by `created_at`. Defaults to `desc` (newest
               first).
 
           page: Opaque pagination cursor from a previous response.
@@ -816,7 +837,8 @@ class AsyncSessions(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -857,12 +879,13 @@ class AsyncSessions(AsyncAPIResource):
         session_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsDeletedSession:
         """
         Delete Session
@@ -885,7 +908,8 @@ class AsyncSessions(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -904,12 +928,13 @@ class AsyncSessions(AsyncAPIResource):
         session_id: str,
         *,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSession:
         """
         Archive Session
@@ -932,7 +957,8 @@ class AsyncSessions(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -951,22 +977,22 @@ class SessionsWithRawResponse:
     def __init__(self, sessions: Sessions) -> None:
         self._sessions = sessions
 
-        self.create = _legacy_response.to_raw_response_wrapper(
+        self.create = to_raw_response_wrapper(
             sessions.create,
         )
-        self.retrieve = _legacy_response.to_raw_response_wrapper(
+        self.retrieve = to_raw_response_wrapper(
             sessions.retrieve,
         )
-        self.update = _legacy_response.to_raw_response_wrapper(
+        self.update = to_raw_response_wrapper(
             sessions.update,
         )
-        self.list = _legacy_response.to_raw_response_wrapper(
+        self.list = to_raw_response_wrapper(
             sessions.list,
         )
-        self.delete = _legacy_response.to_raw_response_wrapper(
+        self.delete = to_raw_response_wrapper(
             sessions.delete,
         )
-        self.archive = _legacy_response.to_raw_response_wrapper(
+        self.archive = to_raw_response_wrapper(
             sessions.archive,
         )
 
@@ -987,22 +1013,22 @@ class AsyncSessionsWithRawResponse:
     def __init__(self, sessions: AsyncSessions) -> None:
         self._sessions = sessions
 
-        self.create = _legacy_response.async_to_raw_response_wrapper(
+        self.create = async_to_raw_response_wrapper(
             sessions.create,
         )
-        self.retrieve = _legacy_response.async_to_raw_response_wrapper(
+        self.retrieve = async_to_raw_response_wrapper(
             sessions.retrieve,
         )
-        self.update = _legacy_response.async_to_raw_response_wrapper(
+        self.update = async_to_raw_response_wrapper(
             sessions.update,
         )
-        self.list = _legacy_response.async_to_raw_response_wrapper(
+        self.list = async_to_raw_response_wrapper(
             sessions.list,
         )
-        self.delete = _legacy_response.async_to_raw_response_wrapper(
+        self.delete = async_to_raw_response_wrapper(
             sessions.delete,
         )
-        self.archive = _legacy_response.async_to_raw_response_wrapper(
+        self.archive = async_to_raw_response_wrapper(
             sessions.archive,
         )
 

@@ -24,6 +24,7 @@ from anyio.to_thread import run_sync
 
 if TYPE_CHECKING:
     from ..._client import AsyncAnthropic
+    from ...types.beta import BetaManagedAgentsSession
 
 __all__ = ["download_session_skills"]
 
@@ -197,50 +198,50 @@ def _extract_skill_archive(archive_path: Path, dest: Path) -> None:
             os.chmod(target, _archive_file_mode(member.mode))
 
 
-async def _resolve_skill_version(client: AsyncAnthropic, skill_id: str, version: str) -> str:
-    """Resolve ``version`` to the concrete numeric timestamp the
-    ``/v1/skills/{id}/versions/{version}`` endpoints require.
-
-    ``session.agent.skills[].version`` may be an alias such as ``"latest"``,
-    which those endpoints reject — so list the skill's versions and pick the
-    newest. Numeric versions are returned unchanged.
-    """
-    if version.isdigit():
-        return version
-    newest: str | None = None
-    async for v in client.beta.skills.versions.list(skill_id):
-        if v.version.isdigit() and (newest is None or int(v.version) > int(newest)):
-            newest = v.version
-    if newest is None:
-        raise ValueError(f"skill {skill_id!r} has no concrete version to resolve {version!r} against")
-    return newest
-
-
 async def download_session_skills(
-    client: AsyncAnthropic, *, session_id: str, workdir: str | os.PathLike[str]
+    client: AsyncAnthropic,
+    *,
+    workdir: str | os.PathLike[str],
+    session: BetaManagedAgentsSession | None = None,
+    session_id: str | None = None,
 ) -> list[Path]:
     """Download the session agent's skills into ``{workdir}/skills/<name>/``.
 
-    Looks up the session's resolved agent, and for each skill fetches its files
-    via ``client.beta.skills.versions.download`` and extracts the archive under a
-    directory named after the skill. The archive is streamed to a temp file
-    rather than buffered whole in memory. A failure on one skill is logged and
-    does not block the others.
+    Reads the resolved agent off ``session``, and for each skill fetches its
+    files via ``client.beta.skills.versions.download`` and extracts the archive
+    under a directory named after the skill. The archive is streamed to a temp
+    file rather than buffered whole in memory. A failure on one skill is logged
+    and does not block the others.
+
+    Pass ``session``. A session's resources cannot change while it runs, so the
+    caller fetches it once and shares that snapshot with the memory-store
+    download — the two can then never disagree about the attached resources.
+
+    ``session_id`` is deprecated: it costs an extra ``sessions.retrieve`` round
+    trip on every call, and a caller that uses it for both this and the
+    memory-store download fetches the session twice. It remains supported for
+    callers written before ``session`` existed.
 
     Returns the list of skill directories that were created, so the caller can
     remove them when the workdir is torn down.
     """
-    # The sessions/skills resources inject their anthropic-beta headers
-    # (managed-agents / skills) themselves — no need to pass `betas=` here.
-    session = await client.beta.sessions.retrieve(session_id)
+    if session is None:
+        if session_id is None:
+            raise ValueError("download_session_skills: pass session (preferred) or session_id")
+        log.warning(
+            "download_session_skills(session_id=...) is deprecated and costs an extra session fetch; "
+            "fetch the session once and pass session= instead"
+        )
+        # The sessions/skills resources inject their anthropic-beta headers
+        # (managed-agents / skills) themselves — no need to pass `betas=` here.
+        session = await client.beta.sessions.retrieve(session_id)
     skills_root = Path(await (anyio.Path(workdir) / "skills").resolve())
     # ``skills_root`` is created lazily by the extraction below — don't create it
     # up front so an agent with no skills leaves no stray directory behind.
     downloaded: list[Path] = []
     for skill in session.agent.skills:
         try:
-            version_id = await _resolve_skill_version(client, skill.skill_id, skill.version)
-            version = await client.beta.skills.versions.retrieve(version_id, skill_id=skill.skill_id)
+            version = await client.beta.skills.versions.retrieve(skill.version, skill_id=skill.skill_id)
             # The directory is the skill's name, but reduce it to a single safe
             # path component so a hostile name can't escape skills_root.
             dirname = os.path.basename(version.name.strip()) or skill.skill_id
@@ -255,9 +256,11 @@ async def download_session_skills(
                 await adest.unlink()
             # ``shutil.rmtree`` is blocking; keep it off the event loop.
             await run_sync(partial(shutil.rmtree, dest, ignore_errors=True))
-            await _download_and_extract(client, skill.skill_id, version_id, dest)
+            # ``skill.version`` may be the alias ``"latest"``, which only the
+            # retrieve endpoint resolves; download by the concrete id it returned.
+            await _download_and_extract(client, skill.skill_id, version.id, dest)
             downloaded.append(dest)
-            log.info("downloaded skill skill_id=%s version=%s -> %s", skill.skill_id, version_id, dest)
+            log.info("downloaded skill skill_id=%s version=%s -> %s", skill.skill_id, version.id, dest)
         except Exception as e:
             log.warning("failed to download skill skill_id=%s: %s", skill.skill_id, e)
     return downloaded

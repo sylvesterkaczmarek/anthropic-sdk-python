@@ -1,11 +1,9 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 import os
 from typing import Any, cast
 
-import httpx
+import httpx2
 import pytest
 from respx import MockRouter
 
@@ -17,10 +15,8 @@ from anthropic._response import (
     StreamedBinaryAPIResponse,
     AsyncStreamedBinaryAPIResponse,
 )
-from anthropic.pagination import SyncPage, AsyncPage
-from anthropic.types.beta import DeletedFile, FileMetadata
-
-# pyright: reportDeprecated=false
+from anthropic.pagination import SyncPageCursor, AsyncPageCursor
+from anthropic.types.beta import BetaDeletedFile, BetaFileMetadata
 
 base_url = os.environ.get("TEST_API_BASE_URL", "http://127.0.0.1:4010")
 
@@ -31,18 +27,19 @@ class TestFiles:
     @parametrize
     def test_method_list(self, client: Anthropic) -> None:
         file = client.beta.files.list()
-        assert_matches_type(SyncPage[FileMetadata], file, path=["response"])
+        assert_matches_type(SyncPageCursor[BetaFileMetadata], file, path=["response"])
 
     @parametrize
     def test_method_list_with_all_params(self, client: Anthropic) -> None:
         file = client.beta.files.list(
-            after_id="after_id",
-            before_id="before_id",
+            ids=["string"],
             limit=1,
+            page="page",
             scope_id="scope_id",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
-        assert_matches_type(SyncPage[FileMetadata], file, path=["response"])
+        assert_matches_type(SyncPageCursor[BetaFileMetadata], file, path=["response"])
 
     @parametrize
     def test_raw_response_list(self, client: Anthropic) -> None:
@@ -51,7 +48,7 @@ class TestFiles:
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
         file = response.parse()
-        assert_matches_type(SyncPage[FileMetadata], file, path=["response"])
+        assert_matches_type(SyncPageCursor[BetaFileMetadata], file, path=["response"])
 
     @parametrize
     def test_streaming_response_list(self, client: Anthropic) -> None:
@@ -60,7 +57,7 @@ class TestFiles:
             assert response.http_request.headers.get("X-Stainless-Lang") == "python"
 
             file = response.parse()
-            assert_matches_type(SyncPage[FileMetadata], file, path=["response"])
+            assert_matches_type(SyncPageCursor[BetaFileMetadata], file, path=["response"])
 
         assert cast(Any, response.is_closed) is True
 
@@ -69,15 +66,16 @@ class TestFiles:
         file = client.beta.files.delete(
             file_id="file_id",
         )
-        assert_matches_type(DeletedFile, file, path=["response"])
+        assert_matches_type(BetaDeletedFile, file, path=["response"])
 
     @parametrize
     def test_method_delete_with_all_params(self, client: Anthropic) -> None:
         file = client.beta.files.delete(
             file_id="file_id",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
-        assert_matches_type(DeletedFile, file, path=["response"])
+        assert_matches_type(BetaDeletedFile, file, path=["response"])
 
     @parametrize
     def test_raw_response_delete(self, client: Anthropic) -> None:
@@ -88,7 +86,7 @@ class TestFiles:
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
         file = response.parse()
-        assert_matches_type(DeletedFile, file, path=["response"])
+        assert_matches_type(BetaDeletedFile, file, path=["response"])
 
     @parametrize
     def test_streaming_response_delete(self, client: Anthropic) -> None:
@@ -99,7 +97,7 @@ class TestFiles:
             assert response.http_request.headers.get("X-Stainless-Lang") == "python"
 
             file = response.parse()
-            assert_matches_type(DeletedFile, file, path=["response"])
+            assert_matches_type(BetaDeletedFile, file, path=["response"])
 
         assert cast(Any, response.is_closed) is True
 
@@ -114,7 +112,7 @@ class TestFiles:
     @pytest.mark.respx(base_url=base_url)
     def test_method_download(self, client: Anthropic, respx_mock: MockRouter) -> None:
         respx_mock.get("/v1/files/file_id/content?beta=true").mock(
-            return_value=httpx.Response(200, json={"foo": "bar"})
+            return_value=httpx2.Response(200, json={"foo": "bar"})
         )
         file = client.beta.files.download(
             file_id="file_id",
@@ -128,11 +126,12 @@ class TestFiles:
     @pytest.mark.respx(base_url=base_url)
     def test_method_download_with_all_params(self, client: Anthropic, respx_mock: MockRouter) -> None:
         respx_mock.get("/v1/files/file_id/content?beta=true").mock(
-            return_value=httpx.Response(200, json={"foo": "bar"})
+            return_value=httpx2.Response(200, json={"foo": "bar"})
         )
         file = client.beta.files.download(
             file_id="file_id",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert file.is_closed
         assert file.json() == {"foo": "bar"}
@@ -143,7 +142,7 @@ class TestFiles:
     @pytest.mark.respx(base_url=base_url)
     def test_raw_response_download(self, client: Anthropic, respx_mock: MockRouter) -> None:
         respx_mock.get("/v1/files/file_id/content?beta=true").mock(
-            return_value=httpx.Response(200, json={"foo": "bar"})
+            return_value=httpx2.Response(200, json={"foo": "bar"})
         )
 
         file = client.beta.files.with_raw_response.download(
@@ -159,7 +158,7 @@ class TestFiles:
     @pytest.mark.respx(base_url=base_url)
     def test_streaming_response_download(self, client: Anthropic, respx_mock: MockRouter) -> None:
         respx_mock.get("/v1/files/file_id/content?beta=true").mock(
-            return_value=httpx.Response(200, json={"foo": "bar"})
+            return_value=httpx2.Response(200, json={"foo": "bar"})
         )
         with client.beta.files.with_streaming_response.download(
             file_id="file_id",
@@ -186,15 +185,16 @@ class TestFiles:
         file = client.beta.files.retrieve_metadata(
             file_id="file_id",
         )
-        assert_matches_type(FileMetadata, file, path=["response"])
+        assert_matches_type(BetaFileMetadata, file, path=["response"])
 
     @parametrize
     def test_method_retrieve_metadata_with_all_params(self, client: Anthropic) -> None:
         file = client.beta.files.retrieve_metadata(
             file_id="file_id",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
-        assert_matches_type(FileMetadata, file, path=["response"])
+        assert_matches_type(BetaFileMetadata, file, path=["response"])
 
     @parametrize
     def test_raw_response_retrieve_metadata(self, client: Anthropic) -> None:
@@ -205,7 +205,7 @@ class TestFiles:
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
         file = response.parse()
-        assert_matches_type(FileMetadata, file, path=["response"])
+        assert_matches_type(BetaFileMetadata, file, path=["response"])
 
     @parametrize
     def test_streaming_response_retrieve_metadata(self, client: Anthropic) -> None:
@@ -216,7 +216,7 @@ class TestFiles:
             assert response.http_request.headers.get("X-Stainless-Lang") == "python"
 
             file = response.parse()
-            assert_matches_type(FileMetadata, file, path=["response"])
+            assert_matches_type(BetaFileMetadata, file, path=["response"])
 
         assert cast(Any, response.is_closed) is True
 
@@ -232,15 +232,17 @@ class TestFiles:
         file = client.beta.files.upload(
             file=b"Example data",
         )
-        assert_matches_type(FileMetadata, file, path=["response"])
+        assert_matches_type(BetaFileMetadata, file, path=["response"])
 
     @parametrize
     def test_method_upload_with_all_params(self, client: Anthropic) -> None:
         file = client.beta.files.upload(
             file=b"Example data",
-            betas=["string"],
+            expires_in_seconds=3600,
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
-        assert_matches_type(FileMetadata, file, path=["response"])
+        assert_matches_type(BetaFileMetadata, file, path=["response"])
 
     @parametrize
     def test_raw_response_upload(self, client: Anthropic) -> None:
@@ -251,7 +253,7 @@ class TestFiles:
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
         file = response.parse()
-        assert_matches_type(FileMetadata, file, path=["response"])
+        assert_matches_type(BetaFileMetadata, file, path=["response"])
 
     @parametrize
     def test_streaming_response_upload(self, client: Anthropic) -> None:
@@ -262,7 +264,7 @@ class TestFiles:
             assert response.http_request.headers.get("X-Stainless-Lang") == "python"
 
             file = response.parse()
-            assert_matches_type(FileMetadata, file, path=["response"])
+            assert_matches_type(BetaFileMetadata, file, path=["response"])
 
         assert cast(Any, response.is_closed) is True
 
@@ -275,18 +277,19 @@ class TestAsyncFiles:
     @parametrize
     async def test_method_list(self, async_client: AsyncAnthropic) -> None:
         file = await async_client.beta.files.list()
-        assert_matches_type(AsyncPage[FileMetadata], file, path=["response"])
+        assert_matches_type(AsyncPageCursor[BetaFileMetadata], file, path=["response"])
 
     @parametrize
     async def test_method_list_with_all_params(self, async_client: AsyncAnthropic) -> None:
         file = await async_client.beta.files.list(
-            after_id="after_id",
-            before_id="before_id",
+            ids=["string"],
             limit=1,
+            page="page",
             scope_id="scope_id",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
-        assert_matches_type(AsyncPage[FileMetadata], file, path=["response"])
+        assert_matches_type(AsyncPageCursor[BetaFileMetadata], file, path=["response"])
 
     @parametrize
     async def test_raw_response_list(self, async_client: AsyncAnthropic) -> None:
@@ -294,8 +297,8 @@ class TestAsyncFiles:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        file = response.parse()
-        assert_matches_type(AsyncPage[FileMetadata], file, path=["response"])
+        file = await response.parse()
+        assert_matches_type(AsyncPageCursor[BetaFileMetadata], file, path=["response"])
 
     @parametrize
     async def test_streaming_response_list(self, async_client: AsyncAnthropic) -> None:
@@ -304,7 +307,7 @@ class TestAsyncFiles:
             assert response.http_request.headers.get("X-Stainless-Lang") == "python"
 
             file = await response.parse()
-            assert_matches_type(AsyncPage[FileMetadata], file, path=["response"])
+            assert_matches_type(AsyncPageCursor[BetaFileMetadata], file, path=["response"])
 
         assert cast(Any, response.is_closed) is True
 
@@ -313,15 +316,16 @@ class TestAsyncFiles:
         file = await async_client.beta.files.delete(
             file_id="file_id",
         )
-        assert_matches_type(DeletedFile, file, path=["response"])
+        assert_matches_type(BetaDeletedFile, file, path=["response"])
 
     @parametrize
     async def test_method_delete_with_all_params(self, async_client: AsyncAnthropic) -> None:
         file = await async_client.beta.files.delete(
             file_id="file_id",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
-        assert_matches_type(DeletedFile, file, path=["response"])
+        assert_matches_type(BetaDeletedFile, file, path=["response"])
 
     @parametrize
     async def test_raw_response_delete(self, async_client: AsyncAnthropic) -> None:
@@ -331,8 +335,8 @@ class TestAsyncFiles:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        file = response.parse()
-        assert_matches_type(DeletedFile, file, path=["response"])
+        file = await response.parse()
+        assert_matches_type(BetaDeletedFile, file, path=["response"])
 
     @parametrize
     async def test_streaming_response_delete(self, async_client: AsyncAnthropic) -> None:
@@ -343,7 +347,7 @@ class TestAsyncFiles:
             assert response.http_request.headers.get("X-Stainless-Lang") == "python"
 
             file = await response.parse()
-            assert_matches_type(DeletedFile, file, path=["response"])
+            assert_matches_type(BetaDeletedFile, file, path=["response"])
 
         assert cast(Any, response.is_closed) is True
 
@@ -358,7 +362,7 @@ class TestAsyncFiles:
     @pytest.mark.respx(base_url=base_url)
     async def test_method_download(self, async_client: AsyncAnthropic, respx_mock: MockRouter) -> None:
         respx_mock.get("/v1/files/file_id/content?beta=true").mock(
-            return_value=httpx.Response(200, json={"foo": "bar"})
+            return_value=httpx2.Response(200, json={"foo": "bar"})
         )
         file = await async_client.beta.files.download(
             file_id="file_id",
@@ -372,11 +376,12 @@ class TestAsyncFiles:
     @pytest.mark.respx(base_url=base_url)
     async def test_method_download_with_all_params(self, async_client: AsyncAnthropic, respx_mock: MockRouter) -> None:
         respx_mock.get("/v1/files/file_id/content?beta=true").mock(
-            return_value=httpx.Response(200, json={"foo": "bar"})
+            return_value=httpx2.Response(200, json={"foo": "bar"})
         )
         file = await async_client.beta.files.download(
             file_id="file_id",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert file.is_closed
         assert await file.json() == {"foo": "bar"}
@@ -387,7 +392,7 @@ class TestAsyncFiles:
     @pytest.mark.respx(base_url=base_url)
     async def test_raw_response_download(self, async_client: AsyncAnthropic, respx_mock: MockRouter) -> None:
         respx_mock.get("/v1/files/file_id/content?beta=true").mock(
-            return_value=httpx.Response(200, json={"foo": "bar"})
+            return_value=httpx2.Response(200, json={"foo": "bar"})
         )
 
         file = await async_client.beta.files.with_raw_response.download(
@@ -403,7 +408,7 @@ class TestAsyncFiles:
     @pytest.mark.respx(base_url=base_url)
     async def test_streaming_response_download(self, async_client: AsyncAnthropic, respx_mock: MockRouter) -> None:
         respx_mock.get("/v1/files/file_id/content?beta=true").mock(
-            return_value=httpx.Response(200, json={"foo": "bar"})
+            return_value=httpx2.Response(200, json={"foo": "bar"})
         )
         async with async_client.beta.files.with_streaming_response.download(
             file_id="file_id",
@@ -430,15 +435,16 @@ class TestAsyncFiles:
         file = await async_client.beta.files.retrieve_metadata(
             file_id="file_id",
         )
-        assert_matches_type(FileMetadata, file, path=["response"])
+        assert_matches_type(BetaFileMetadata, file, path=["response"])
 
     @parametrize
     async def test_method_retrieve_metadata_with_all_params(self, async_client: AsyncAnthropic) -> None:
         file = await async_client.beta.files.retrieve_metadata(
             file_id="file_id",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
-        assert_matches_type(FileMetadata, file, path=["response"])
+        assert_matches_type(BetaFileMetadata, file, path=["response"])
 
     @parametrize
     async def test_raw_response_retrieve_metadata(self, async_client: AsyncAnthropic) -> None:
@@ -448,8 +454,8 @@ class TestAsyncFiles:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        file = response.parse()
-        assert_matches_type(FileMetadata, file, path=["response"])
+        file = await response.parse()
+        assert_matches_type(BetaFileMetadata, file, path=["response"])
 
     @parametrize
     async def test_streaming_response_retrieve_metadata(self, async_client: AsyncAnthropic) -> None:
@@ -460,7 +466,7 @@ class TestAsyncFiles:
             assert response.http_request.headers.get("X-Stainless-Lang") == "python"
 
             file = await response.parse()
-            assert_matches_type(FileMetadata, file, path=["response"])
+            assert_matches_type(BetaFileMetadata, file, path=["response"])
 
         assert cast(Any, response.is_closed) is True
 
@@ -476,15 +482,17 @@ class TestAsyncFiles:
         file = await async_client.beta.files.upload(
             file=b"Example data",
         )
-        assert_matches_type(FileMetadata, file, path=["response"])
+        assert_matches_type(BetaFileMetadata, file, path=["response"])
 
     @parametrize
     async def test_method_upload_with_all_params(self, async_client: AsyncAnthropic) -> None:
         file = await async_client.beta.files.upload(
             file=b"Example data",
-            betas=["string"],
+            expires_in_seconds=3600,
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
-        assert_matches_type(FileMetadata, file, path=["response"])
+        assert_matches_type(BetaFileMetadata, file, path=["response"])
 
     @parametrize
     async def test_raw_response_upload(self, async_client: AsyncAnthropic) -> None:
@@ -494,8 +502,8 @@ class TestAsyncFiles:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        file = response.parse()
-        assert_matches_type(FileMetadata, file, path=["response"])
+        file = await response.parse()
+        assert_matches_type(BetaFileMetadata, file, path=["response"])
 
     @parametrize
     async def test_streaming_response_upload(self, async_client: AsyncAnthropic) -> None:
@@ -506,6 +514,6 @@ class TestAsyncFiles:
             assert response.http_request.headers.get("X-Stainless-Lang") == "python"
 
             file = await response.parse()
-            assert_matches_type(FileMetadata, file, path=["response"])
+            assert_matches_type(BetaFileMetadata, file, path=["response"])
 
         assert cast(Any, response.is_closed) is True

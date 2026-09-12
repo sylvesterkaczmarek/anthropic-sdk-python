@@ -1,5 +1,3 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 import os
@@ -53,7 +51,8 @@ class TestEnvironments:
             description="Python environment with data-analysis packages.",
             metadata={"foo": "string"},
             scope="organization",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaEnvironment, environment, path=["response"])
 
@@ -92,7 +91,8 @@ class TestEnvironments:
     def test_method_retrieve_with_all_params(self, client: Anthropic) -> None:
         environment = client.beta.environments.retrieve(
             environment_id="env_011CZkZ9X2dpNyB7HsEFoRfW",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaEnvironment, environment, path=["response"])
 
@@ -160,7 +160,8 @@ class TestEnvironments:
             metadata={"foo": "string"},
             name="x",
             scope="organization",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaEnvironment, environment, path=["response"])
 
@@ -206,7 +207,8 @@ class TestEnvironments:
             include_archived=True,
             limit=1,
             page="page",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(SyncPageCursor[BetaEnvironment], environment, path=["response"])
 
@@ -241,7 +243,8 @@ class TestEnvironments:
     def test_method_delete_with_all_params(self, client: Anthropic) -> None:
         environment = client.beta.environments.delete(
             environment_id="env_011CZkZ9X2dpNyB7HsEFoRfW",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaEnvironmentDeleteResponse, environment, path=["response"])
 
@@ -287,7 +290,8 @@ class TestEnvironments:
     def test_method_archive_with_all_params(self, client: Anthropic) -> None:
         environment = client.beta.environments.archive(
             environment_id="env_011CZkZ9X2dpNyB7HsEFoRfW",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaEnvironment, environment, path=["response"])
 
@@ -360,7 +364,8 @@ class TestAsyncEnvironments:
             description="Python environment with data-analysis packages.",
             metadata={"foo": "string"},
             scope="organization",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaEnvironment, environment, path=["response"])
 
@@ -372,7 +377,7 @@ class TestAsyncEnvironments:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        environment = response.parse()
+        environment = await response.parse()
         assert_matches_type(BetaEnvironment, environment, path=["response"])
 
     @parametrize
@@ -399,7 +404,8 @@ class TestAsyncEnvironments:
     async def test_method_retrieve_with_all_params(self, async_client: AsyncAnthropic) -> None:
         environment = await async_client.beta.environments.retrieve(
             environment_id="env_011CZkZ9X2dpNyB7HsEFoRfW",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaEnvironment, environment, path=["response"])
 
@@ -411,7 +417,7 @@ class TestAsyncEnvironments:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        environment = response.parse()
+        environment = await response.parse()
         assert_matches_type(BetaEnvironment, environment, path=["response"])
 
     @parametrize
@@ -467,7 +473,8 @@ class TestAsyncEnvironments:
             metadata={"foo": "string"},
             name="x",
             scope="organization",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaEnvironment, environment, path=["response"])
 
@@ -479,7 +486,7 @@ class TestAsyncEnvironments:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        environment = response.parse()
+        environment = await response.parse()
         assert_matches_type(BetaEnvironment, environment, path=["response"])
 
     @parametrize
@@ -513,7 +520,8 @@ class TestAsyncEnvironments:
             include_archived=True,
             limit=1,
             page="page",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(AsyncPageCursor[BetaEnvironment], environment, path=["response"])
 
@@ -523,7 +531,7 @@ class TestAsyncEnvironments:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        environment = response.parse()
+        environment = await response.parse()
         assert_matches_type(AsyncPageCursor[BetaEnvironment], environment, path=["response"])
 
     @parametrize
@@ -548,7 +556,8 @@ class TestAsyncEnvironments:
     async def test_method_delete_with_all_params(self, async_client: AsyncAnthropic) -> None:
         environment = await async_client.beta.environments.delete(
             environment_id="env_011CZkZ9X2dpNyB7HsEFoRfW",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaEnvironmentDeleteResponse, environment, path=["response"])
 
@@ -560,7 +569,7 @@ class TestAsyncEnvironments:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        environment = response.parse()
+        environment = await response.parse()
         assert_matches_type(BetaEnvironmentDeleteResponse, environment, path=["response"])
 
     @parametrize
@@ -594,7 +603,8 @@ class TestAsyncEnvironments:
     async def test_method_archive_with_all_params(self, async_client: AsyncAnthropic) -> None:
         environment = await async_client.beta.environments.archive(
             environment_id="env_011CZkZ9X2dpNyB7HsEFoRfW",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaEnvironment, environment, path=["response"])
 
@@ -606,7 +616,7 @@ class TestAsyncEnvironments:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        environment = response.parse()
+        environment = await response.parse()
         assert_matches_type(BetaEnvironment, environment, path=["response"])
 
     @parametrize

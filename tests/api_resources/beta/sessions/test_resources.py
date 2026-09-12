@@ -1,5 +1,3 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 import os
@@ -39,7 +37,8 @@ class TestResources:
         resource = client.beta.sessions.resources.retrieve(
             resource_id="sesrsc_011CZkZBJq5dWxk9fVLNcPht",
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(ResourceRetrieveResponse, resource, path=["response"])
 
@@ -103,7 +102,8 @@ class TestResources:
             resource_id="sesrsc_011CZkZBJq5dWxk9fVLNcPht",
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
             authorization_token="ghp_exampletoken",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(ResourceUpdateResponse, resource, path=["response"])
 
@@ -169,7 +169,8 @@ class TestResources:
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
             limit=0,
             page="page",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(SyncPageCursor[BetaManagedAgentsSessionResource], resource, path=["response"])
 
@@ -222,7 +223,8 @@ class TestResources:
         resource = client.beta.sessions.resources.delete(
             resource_id="sesrsc_011CZkZBJq5dWxk9fVLNcPht",
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsDeleteSessionResource, resource, path=["response"])
 
@@ -287,7 +289,8 @@ class TestResources:
             file_id="file_011CNha8iCJcU1wXNR6q4V8w",
             type="file",
             mount_path="/uploads/receipt.pdf",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsFileResource, resource, path=["response"])
 
@@ -352,7 +355,8 @@ class TestAsyncResources:
         resource = await async_client.beta.sessions.resources.retrieve(
             resource_id="sesrsc_011CZkZBJq5dWxk9fVLNcPht",
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(ResourceRetrieveResponse, resource, path=["response"])
 
@@ -366,7 +370,7 @@ class TestAsyncResources:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        resource = response.parse()
+        resource = await response.parse()
         assert_matches_type(ResourceRetrieveResponse, resource, path=["response"])
 
     @pytest.mark.skip(reason="prism can't find endpoint with beta only tag")
@@ -416,7 +420,8 @@ class TestAsyncResources:
             resource_id="sesrsc_011CZkZBJq5dWxk9fVLNcPht",
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
             authorization_token="ghp_exampletoken",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(ResourceUpdateResponse, resource, path=["response"])
 
@@ -431,7 +436,7 @@ class TestAsyncResources:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        resource = response.parse()
+        resource = await response.parse()
         assert_matches_type(ResourceUpdateResponse, resource, path=["response"])
 
     @pytest.mark.skip(reason="prism can't find endpoint with beta only tag")
@@ -482,7 +487,8 @@ class TestAsyncResources:
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
             limit=0,
             page="page",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(AsyncPageCursor[BetaManagedAgentsSessionResource], resource, path=["response"])
 
@@ -495,7 +501,7 @@ class TestAsyncResources:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        resource = response.parse()
+        resource = await response.parse()
         assert_matches_type(AsyncPageCursor[BetaManagedAgentsSessionResource], resource, path=["response"])
 
     @pytest.mark.skip(reason="prism can't find endpoint with beta only tag")
@@ -535,7 +541,8 @@ class TestAsyncResources:
         resource = await async_client.beta.sessions.resources.delete(
             resource_id="sesrsc_011CZkZBJq5dWxk9fVLNcPht",
             session_id="sesn_011CZkZAtmR3yMPDzynEDxu7",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsDeleteSessionResource, resource, path=["response"])
 
@@ -549,7 +556,7 @@ class TestAsyncResources:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        resource = response.parse()
+        resource = await response.parse()
         assert_matches_type(BetaManagedAgentsDeleteSessionResource, resource, path=["response"])
 
     @pytest.mark.skip(reason="prism can't find endpoint with beta only tag")
@@ -600,7 +607,8 @@ class TestAsyncResources:
             file_id="file_011CNha8iCJcU1wXNR6q4V8w",
             type="file",
             mount_path="/uploads/receipt.pdf",
-            betas=["string"],
+            betas=["message-batches-2024-09-24"],
+            workspace_id="wrkspc_011CZkZaBF1tNoB5wlCeusgy",
         )
         assert_matches_type(BetaManagedAgentsFileResource, resource, path=["response"])
 
@@ -615,7 +623,7 @@ class TestAsyncResources:
 
         assert response.is_closed is True
         assert response.http_request.headers.get("X-Stainless-Lang") == "python"
-        resource = response.parse()
+        resource = await response.parse()
         assert_matches_type(BetaManagedAgentsFileResource, resource, path=["response"])
 
     @pytest.mark.skip(reason="prism can't find endpoint with beta only tag")

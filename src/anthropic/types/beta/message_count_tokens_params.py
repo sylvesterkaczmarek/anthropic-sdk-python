@@ -1,11 +1,8 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 from typing import List, Union, Iterable, Optional
-from typing_extensions import Literal, Required, Annotated, TypeAlias, TypedDict
+from typing_extensions import Literal, Required, TypeAlias, TypedDict
 
-from ..._utils import PropertyInfo
 from ..model_param import ModelParam
 from .beta_tool_param import BetaToolParam
 from .beta_message_param import BetaMessageParam
@@ -15,7 +12,6 @@ from .beta_mcp_toolset_param import BetaMCPToolsetParam
 from .beta_tool_choice_param import BetaToolChoiceParam
 from .beta_output_config_param import BetaOutputConfigParam
 from .beta_thinking_config_param import BetaThinkingConfigParam
-from .beta_json_output_format_param import BetaJSONOutputFormatParam
 from .beta_tool_bash_20241022_param import BetaToolBash20241022Param
 from .beta_tool_bash_20250124_param import BetaToolBash20250124Param
 from .beta_memory_tool_20250818_param import BetaMemoryTool20250818Param
@@ -25,9 +21,11 @@ from .beta_web_fetch_tool_20250910_param import BetaWebFetchTool20250910Param
 from .beta_web_fetch_tool_20260209_param import BetaWebFetchTool20260209Param
 from .beta_web_fetch_tool_20260309_param import BetaWebFetchTool20260309Param
 from .beta_web_fetch_tool_20260318_param import BetaWebFetchTool20260318Param
+from .beta_browser_toolset_20260801_param import BetaBrowserToolset20260801Param
 from .beta_web_search_tool_20250305_param import BetaWebSearchTool20250305Param
 from .beta_web_search_tool_20260209_param import BetaWebSearchTool20260209Param
 from .beta_web_search_tool_20260318_param import BetaWebSearchTool20260318Param
+from .beta_computer_toolset_20260801_param import BetaComputerToolset20260801Param
 from .beta_context_management_config_param import BetaContextManagementConfigParam
 from .beta_tool_text_editor_20241022_param import BetaToolTextEditor20241022Param
 from .beta_tool_text_editor_20250124_param import BetaToolTextEditor20250124Param
@@ -143,16 +141,6 @@ class MessageCountTokensParams(TypedDict, total=False):
     output_config: BetaOutputConfigParam
     """Configuration options for the model's output, such as the output format."""
 
-    output_format: Optional[BetaJSONOutputFormatParam]
-    """Deprecated: Use `output_config.format` instead.
-
-    See
-    [structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
-
-    A schema to specify Claude's output format in responses. This parameter will be
-    removed in a future release.
-    """
-
     speed: Optional[Literal["standard", "fast"]]
     """Inference speed mode.
 
@@ -267,15 +255,17 @@ class MessageCountTokensParams(TypedDict, total=False):
     for more details.
     """
 
-    betas: Annotated[List[AnthropicBetaParam], PropertyInfo(alias="anthropic-beta")]
+    betas: List[AnthropicBetaParam]
     """Optional header to specify the beta version(s) you want to use."""
 
-    user_profile_id: Annotated[str, PropertyInfo(alias="anthropic-user-profile-id")]
+    user_profile_id: str
     """The user profile ID to attribute this request to.
 
     Use when acting on behalf of a party other than your organization. Requires the
     `user-profiles` beta header.
     """
+
+    workspace_id: str
 
 
 Tool: TypeAlias = Union[
@@ -286,11 +276,13 @@ Tool: TypeAlias = Union[
     BetaCodeExecutionTool20250825Param,
     BetaCodeExecutionTool20260120Param,
     BetaCodeExecutionTool20260521Param,
+    BetaBrowserToolset20260801Param,
     BetaToolComputerUse20241022Param,
     BetaMemoryTool20250818Param,
     BetaToolComputerUse20250124Param,
     BetaToolTextEditor20241022Param,
     BetaToolComputerUse20251124Param,
+    BetaComputerToolset20260801Param,
     BetaToolTextEditor20250124Param,
     BetaToolTextEditor20250429Param,
     BetaToolTextEditor20250728Param,

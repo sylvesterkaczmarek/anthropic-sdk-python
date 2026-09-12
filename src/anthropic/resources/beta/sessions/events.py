@@ -1,5 +1,3 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, List, Union, Iterable, cast
@@ -7,7 +5,7 @@ from datetime import datetime
 from itertools import chain
 from typing_extensions import Literal
 
-import httpx
+import httpx2
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -15,12 +13,16 @@ if TYPE_CHECKING:
     from ...._client import AsyncAnthropic
     from ....lib.tools._beta_session_runner import SessionToolRunner, BetaAnyRunnableTool
 
-from .... import _legacy_response
 from ...._types import Body, Omit, Query, Headers, NotGiven, SequenceNotStr, omit, not_given
 from ...._utils import is_given, path_template, maybe_transform, strip_not_given, async_maybe_transform
 from ...._compat import cached_property
 from ...._resource import SyncAPIResource, AsyncAPIResource
-from ...._response import to_streamed_response_wrapper, async_to_streamed_response_wrapper
+from ...._response import (
+    to_raw_response_wrapper,
+    to_streamed_response_wrapper,
+    async_to_raw_response_wrapper,
+    async_to_streamed_response_wrapper,
+)
 from ...._streaming import Stream, AsyncStream
 from ....pagination import SyncPageCursor, AsyncPageCursor
 from ...._base_client import AsyncPaginator, make_request_options
@@ -68,12 +70,13 @@ class Events(SyncAPIResource):
         page: str | Omit = omit,
         types: SequenceNotStr[str] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> SyncPageCursor[BetaManagedAgentsSessionEvent]:
         """
         List Events
@@ -94,9 +97,9 @@ class Events(SyncAPIResource):
           limit: Query parameter for limit
 
           order: Sort direction for results, ordered by the event's `processed_at`. Defaults to
-              asc (chronological).
+              `asc` (chronological).
 
-          page: Opaque pagination cursor from a previous response's next_page.
+          page: Opaque pagination cursor from a previous response's `next_page`.
 
           types: Filter by event type. Values match the `type` field on returned events (for
               example, `user.message` or `agent.tool_use`). Omit to return all event types.
@@ -118,7 +121,8 @@ class Events(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -157,12 +161,13 @@ class Events(SyncAPIResource):
         *,
         events: Iterable[BetaManagedAgentsEventParams],
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSendSessionEvents:
         """
         Send Events
@@ -187,7 +192,8 @@ class Events(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -208,12 +214,13 @@ class Events(SyncAPIResource):
         *,
         event_deltas: List[BetaManagedAgentsDeltaType] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> Stream[BetaManagedAgentsStreamSessionEvents]:
         """
         Stream Events
@@ -247,7 +254,8 @@ class Events(SyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -303,12 +311,13 @@ class AsyncEvents(AsyncAPIResource):
         page: str | Omit = omit,
         types: SequenceNotStr[str] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> AsyncPaginator[BetaManagedAgentsSessionEvent, AsyncPageCursor[BetaManagedAgentsSessionEvent]]:
         """
         List Events
@@ -329,9 +338,9 @@ class AsyncEvents(AsyncAPIResource):
           limit: Query parameter for limit
 
           order: Sort direction for results, ordered by the event's `processed_at`. Defaults to
-              asc (chronological).
+              `asc` (chronological).
 
-          page: Opaque pagination cursor from a previous response's next_page.
+          page: Opaque pagination cursor from a previous response's `next_page`.
 
           types: Filter by event type. Values match the `type` field on returned events (for
               example, `user.message` or `agent.tool_use`). Omit to return all event types.
@@ -353,7 +362,8 @@ class AsyncEvents(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -392,12 +402,13 @@ class AsyncEvents(AsyncAPIResource):
         *,
         events: Iterable[BetaManagedAgentsEventParams],
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> BetaManagedAgentsSendSessionEvents:
         """
         Send Events
@@ -422,7 +433,8 @@ class AsyncEvents(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -443,12 +455,13 @@ class AsyncEvents(AsyncAPIResource):
         *,
         event_deltas: List[BetaManagedAgentsDeltaType] | Omit = omit,
         betas: List[AnthropicBetaParam] | Omit = omit,
+        workspace_id: str | Omit = omit,
         # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
         # The extra values given here take precedence over values defined on the client or passed to this method.
         extra_headers: Headers | None = None,
         extra_query: Query | None = None,
         extra_body: Body | None = None,
-        timeout: float | httpx.Timeout | None | NotGiven = not_given,
+        timeout: float | httpx2.Timeout | None | NotGiven = not_given,
     ) -> AsyncStream[BetaManagedAgentsStreamSessionEvents]:
         """
         Stream Events
@@ -482,7 +495,8 @@ class AsyncEvents(AsyncAPIResource):
                 {
                     "anthropic-beta": ",".join(chain((str(e) for e in betas), ["managed-agents-2026-04-01"]))
                     if is_given(betas)
-                    else not_given
+                    else not_given,
+                    "anthropic-workspace-id": workspace_id,
                 }
             ),
             **(extra_headers or {}),
@@ -604,13 +618,13 @@ class EventsWithRawResponse:
     def __init__(self, events: Events) -> None:
         self._events = events
 
-        self.list = _legacy_response.to_raw_response_wrapper(
+        self.list = to_raw_response_wrapper(
             events.list,
         )
-        self.send = _legacy_response.to_raw_response_wrapper(
+        self.send = to_raw_response_wrapper(
             events.send,
         )
-        self.stream = _legacy_response.to_raw_response_wrapper(
+        self.stream = to_raw_response_wrapper(
             events.stream,
         )
 
@@ -619,13 +633,13 @@ class AsyncEventsWithRawResponse:
     def __init__(self, events: AsyncEvents) -> None:
         self._events = events
 
-        self.list = _legacy_response.async_to_raw_response_wrapper(
+        self.list = async_to_raw_response_wrapper(
             events.list,
         )
-        self.send = _legacy_response.async_to_raw_response_wrapper(
+        self.send = async_to_raw_response_wrapper(
             events.send,
         )
-        self.stream = _legacy_response.async_to_raw_response_wrapper(
+        self.stream = async_to_raw_response_wrapper(
             events.stream,
         )
 

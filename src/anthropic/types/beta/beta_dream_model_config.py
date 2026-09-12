@@ -1,5 +1,3 @@
-# File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-
 from typing import Optional
 from typing_extensions import Literal
 
@@ -15,7 +13,7 @@ class BetaDreamModelConfig(BaseModel):
     """
 
     id: str
-    """Model identifier, e.g. "claude-opus-4-7". 1-256 characters."""
+    """Model identifier, e.g. "claude-opus-5". 1-256 characters."""
 
     speed: Optional[Literal["standard", "fast"]] = None
     """Inference speed mode.

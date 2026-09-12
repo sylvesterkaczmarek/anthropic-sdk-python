@@ -21,14 +21,15 @@ import json
 import math
 import time
 import logging
+import itertools
 import contextlib
 from typing import TYPE_CHECKING, Union, Literal, cast
 from dataclasses import dataclass
-from collections.abc import Sequence, AsyncIterator
+from collections.abc import Callable, Sequence, AsyncIterator
 
 import anyio
 
-from .._retry import TRANSIENT_ERRORS, is_fatal_status_error
+from .._retry import TRANSIENT_ERRORS, jitter, backoff, is_fatal_status_error
 from ..._types import Headers
 from ._tool_dispatch import tool_registry, run_runnable_tool, tool_error_content
 from .._scoped_client import _copy_client_with_bearer_auth
@@ -120,7 +121,15 @@ STREAM_BACKOFF_CAP = 10.0
 # still never be equal.) Invariant covered by
 # tests/lib/tools/test_session_runner.py::test_tool_timeout_exceeds_bash_default.
 TOOL_TIMEOUT = 150.0
-SEND_RETRIES = 3
+# Cap, in seconds, on the exponential backoff (1s, 2s, 4s, …) between
+# tool-result send retries.
+SEND_BACKOFF_CAP = 30.0
+# How long, in seconds, a transiently failing tool-result send keeps retrying
+# when the runner is used on its own: the server's default work-item lease TTL.
+# ``EnvironmentWorker`` overrides it with the live TTL from each lease heartbeat
+# (through ``_run_session_tools``), so a send is only abandoned once the lease
+# can no longer be ours.
+SEND_RETRY_WINDOW = 300.0
 # Grace period, in seconds, that the runner keeps running after the session goes
 # idle with stop_reason ``end_turn`` before it stops; any new event in that
 # window resets it. ``max_idle=None`` disables it (run until the session ends).
@@ -374,10 +383,21 @@ class SessionToolRunner:
     :class:`~anthropic.lib.environments.EnvironmentWorker` for heartbeating /
     force-stop.
 
+    Tool calls run one at a time and each is bounded by ``TOOL_TIMEOUT``,
+    after which the runner posts an ``is_error`` "timed out" result. Async
+    tools are awaited on the event loop, so keep them non-blocking. Sync tools
+    (``@beta_tool``, :class:`~anthropic.lib.tools.BetaBuiltinFunctionTool`)
+    run on a worker thread so they cannot stall the loop, and should use
+    ``anyio.from_thread.run`` if they need to call async code. A timed-out
+    sync tool's thread is not joined, so its body may still be running during
+    later calls and the exit-time cleanup.
+
     Pass ``environment_key`` to authenticate the event stream / list / send
     calls with the self-hosted environment key (bearered, with the client's
     default ``x-api-key`` dropped); leave it unset to use the client's own
-    credentials.
+    credentials. :class:`~anthropic.lib.environments.EnvironmentWorker` may
+    pass a per-item sessions token here instead when the claimed work item
+    carried one — any Bearer credential the session endpoints accept works.
 
     A self-hosted session is commonly serviced by **two** clients at once: this
     runner inside the customer's sandbox (registered with the file/shell sandbox
@@ -442,6 +462,9 @@ class SessionToolRunner:
         # a caller value appends to the runner's tag rather than replacing it),
         # so this is for caller passthrough (trace ids etc.), not auth.
         self.extra_headers = extra_headers
+        # Override for SEND_RETRY_WINDOW, re-read before every send retry;
+        # ``_run_session_tools`` installs EnvironmentWorker's live lease TTL.
+        self._send_retry_window: Callable[[], float | None] = lambda: None
 
     async def __aiter__(self) -> AsyncIterator[DispatchedToolCall]:
         async with self._run() as calls:
@@ -457,8 +480,6 @@ class SessionToolRunner:
         """
         async for _ in self:
             pass
-
-    # -- run lifecycle ------------------------------------------------------
 
     @contextlib.asynccontextmanager
     async def _run(self) -> AsyncIterator[AsyncIterator[DispatchedToolCall]]:
@@ -547,8 +568,6 @@ class SessionToolRunner:
             with anyio.CancelScope(shield=True):
                 for tool in self.tools:
                     await aclose_runnable_tool(tool)
-
-    # -- event-stream + reconcile ------------------------------------------
 
     async def _reconcile(self) -> None:
         """Read full history and enqueue every tool-call event still unanswered.
@@ -673,8 +692,6 @@ class SessionToolRunner:
                 await self._stop.wait()
             backoff = min(backoff * 2, STREAM_BACKOFF_CAP)
 
-    # -- confirmation gating (always_ask tools) ------------------------------
-
     async def _route_tool_event(self, ev: DispatchedToolUseEvent) -> None:
         """Enqueue ``ev`` for dispatch, honoring its evaluated permission.
 
@@ -789,8 +806,6 @@ class SessionToolRunner:
         except (anyio.BrokenResourceError, anyio.ClosedResourceError):
             pass
 
-    # -- tool dispatch ------------------------------------------------------
-
     async def _dispatch_loop(self) -> None:
         try:
             while True:
@@ -886,14 +901,17 @@ class SessionToolRunner:
         )
 
     async def _send_result(self, tool_result: DispatchedToolResultParams, tool_use_id: str) -> bool:
-        """Post ``tool_result`` back to the session, retrying transient failures.
+        """Post ``tool_result`` back to the session, retrying transient failures
+        with jittered exponential backoff until the send retry window elapses.
 
         ``tool_use_id`` is the originating tool-call event id — passed
         explicitly because the result params key it differently
         (``tool_use_id`` vs ``custom_tool_use_id``) depending on the kind.
         """
+        start = time.monotonic()
         last_err: Exception | None = None
-        for i in range(SEND_RETRIES):
+        attempt = 0
+        for attempt in itertools.count(1):
             try:
                 await self._events.send(
                     self.session_id,
@@ -906,13 +924,21 @@ class SessionToolRunner:
                 last_err = e
                 if is_fatal_status_error(e):
                     break
-                # Don't sleep after the final attempt — there is no retry to wait for.
-                if i < SEND_RETRIES - 1:
-                    await anyio.sleep(i + 1)
-        log.error("failed to send tool result tool_use_id=%s error=%s", tool_use_id, last_err)
+                remaining = (self._send_retry_window() or SEND_RETRY_WINDOW) - (time.monotonic() - start)
+                if remaining <= 0:
+                    break
+                delay = backoff(attempt - 1, cap=SEND_BACKOFF_CAP)
+                wait = min(jitter(delay / 2, delay), remaining)
+                log.warning(
+                    "tool result send failed; retrying tool_use_id=%s attempt=%d backoff=%.1fs error=%s",
+                    tool_use_id,
+                    attempt,
+                    wait,
+                    e,
+                )
+                await anyio.sleep(wait)
+        log.error("failed to send tool result tool_use_id=%s attempts=%d error=%s", tool_use_id, attempt, last_err)
         return False
-
-    # -- background watchers -----------------------------------------------
 
     async def _idle_watchdog(self) -> None:
         """Stop the runner once the session has been idle (``end_turn``) for
@@ -970,14 +996,17 @@ async def _run_session_tools(
     max_idle: float | None = DEFAULT_MAX_IDLE,
     environment_key: str | None = None,
     extra_headers: Headers | None = None,
+    send_retry_window: Callable[[], float | None] | None = None,
 ) -> AsyncIterator[AsyncIterator[DispatchedToolCall]]:
     """Internal: drive a :class:`SessionToolRunner` as an async context manager.
 
     Kept as a thin module-level shim because
     :class:`~anthropic.lib.environments.EnvironmentWorker` enters the runner
     inside its own task group and wants the context-manager shape for
-    deterministic cleanup. New code should iterate :class:`SessionToolRunner`
-    directly.
+    deterministic cleanup, and feeds it the work-item lease TTL as the
+    tool-result send retry window via ``send_retry_window`` (re-read before
+    every retry; ``None`` until the first heartbeat means the default). New
+    code should iterate :class:`SessionToolRunner` directly.
     """
     runner = SessionToolRunner(
         client,
@@ -987,5 +1016,7 @@ async def _run_session_tools(
         environment_key=environment_key,
         extra_headers=extra_headers,
     )
+    if send_retry_window is not None:
+        runner._send_retry_window = send_retry_window  # noqa: SLF001
     async with runner._run() as calls:  # noqa: SLF001
         yield calls
